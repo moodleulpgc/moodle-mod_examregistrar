@@ -67,37 +67,37 @@ function xmldb_examregistrar_upgrade($oldversion) {
 
         $table = new xmldb_table('examregistrar_examfiles');
         $field = new xmldb_field('reviewid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'attempt');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field reviewid.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
         $field = new xmldb_field('idnumber', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'attempt');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field idnumber.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
         $field = new xmldb_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'attempt');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field name.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
         $field = new xmldb_field('component', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field component.
         if ($dbman->field_exists($table, $field)) {
             $dbman->drop_field($table, $field);
         }
 
         $field = new xmldb_field('taken', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0', 'idnumber');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field taken.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
         $field = new xmldb_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'taken');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field userid.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -108,13 +108,13 @@ function xmldb_examregistrar_upgrade($oldversion) {
         }
 
         $field = new xmldb_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'reviewerid');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field userid.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
         $field = new xmldb_field('timeapproved', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'timecreated');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field timeapproved.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -126,7 +126,7 @@ function xmldb_examregistrar_upgrade($oldversion) {
         }
 
         $field = new xmldb_field('reviewid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'attempt');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field reviewid.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -135,11 +135,10 @@ function xmldb_examregistrar_upgrade($oldversion) {
 
         $table = new xmldb_table('examregistrar');
         $field = new xmldb_field('reviewmod', XMLDB_TYPE_CHAR, '100', null, null, null, null, 'workmode');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field reviewmod.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
-
 
         upgrade_mod_savepoint(true, 2013122110, 'examregistrar');
     }
@@ -147,7 +146,7 @@ function xmldb_examregistrar_upgrade($oldversion) {
     if ($oldversion < 2013122113) {
         $table = new xmldb_table('examregistrar_bookings');
         $field = new xmldb_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'modifierid');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field timecreated.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
 
@@ -166,7 +165,7 @@ function xmldb_examregistrar_upgrade($oldversion) {
     if ($oldversion < 2015041600) {
         $table = new xmldb_table('examregistrar_examfiles');
         $field = new xmldb_field('printmode', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0', 'reviewid');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field printmode.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -212,27 +211,27 @@ function xmldb_examregistrar_upgrade($oldversion) {
 
         $table = new xmldb_table('examregistrar_session_seats');
         $field = new xmldb_field('reviewerid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'seat');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field reviewerid.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
         $field = new xmldb_field('status', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0', 'seat');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field status.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
         $field = new xmldb_field('certified', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'seat');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field certified.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
         $field = new xmldb_field('taken', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'seat');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field taken.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
         $field = new xmldb_field('showing', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'seat');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field showing.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -316,7 +315,7 @@ function xmldb_examregistrar_upgrade($oldversion) {
         
         $table = new xmldb_table('examregistrar_session_seats');
         $field = new xmldb_field('timereviewed', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field timereviewed.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -356,7 +355,7 @@ function xmldb_examregistrar_upgrade($oldversion) {
         $table = new xmldb_table('examregistrar');
         $field = new xmldb_field('configdata', XMLDB_TYPE_TEXT, null, null, null, null, null, 'lagdays');
 
-        // Conditionally launch add field assignplugincm.
+        // Conditionally launch add field configdata.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -366,8 +365,7 @@ function xmldb_examregistrar_upgrade($oldversion) {
     
 
     if ($oldversion < 2020082300) {
-    
-        // Define field assignplugincm to be added to forum.
+        // Define field quizplugincm to be added to forum.
         $table = new xmldb_table('examregistrar_exams');
         $field = new xmldb_field('quizplugincm', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'assignplugincm');
 
@@ -376,8 +374,121 @@ function xmldb_examregistrar_upgrade($oldversion) {
             $dbman->add_field($table, $field);
         }
     
-        upgrade_mod_savepoint(true, 2020082300, 'examregistrar');
+        upgrade_mod_savepoint(true, 2020082300, 'quizplugincm');
     }    
 
+    // major change to several exam delivery methods
+    if ($oldversion < 2021021500) {    
+        
+        // Define table examdelivery to be created.
+        $table = new xmldb_table('examregistrar_examdelivery');
+        // Adding fields to table session responses.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('examid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        //$table->add_field('examfileid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);        
+        $table->add_field('helpermod', XMLDB_TYPE_CHAR, '20', null, null, null, null);
+        $table->add_field('helpercmid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('timeopen', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('timeclose', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('timelimit', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('status', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('parameters', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('component', XMLDB_TYPE_CHAR, '100', null, null, null, null);
+        $table->add_field('modifierid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+       
+        // Adding keys to table session responses.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('examid', XMLDB_KEY_FOREIGN, array('examid'), 'examregistrar_exams', array('id'));
+        $table->add_key('helpercmid', XMLDB_KEY_FOREIGN, array('helpercmid'), 'course_modules', array('id'));
+        //$table->add_key('examfileid', XMLDB_KEY_FOREIGN, array('examfileid'), 'examregistrar_examfile', array('id'));
+
+        // Adding indexes to table session responses.
+        $table->add_index('status', XMLDB_INDEX_NOTUNIQUE, array('status'));
+
+        // Conditionally launch create table for exam student response files.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+    
+        // Define field deliveryid to be added to responses table.
+        $table = new xmldb_table('examregistrar_responses');
+        $field = new xmldb_field('deliveryid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'examid');
+
+        // Conditionally launch add field deliveryid.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+    
+        // field deliveryid to be added to session_seats table.
+        $table = new xmldb_table('examregistrar_session_seats');
+
+        // Conditionally launch add field deliveryid.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+    
+    
+    
+        // Populate new table from exams table 
+        $now = time();
+        $sql = "SELECT e.id AS examid, e.assignplugincm, e.quizplugincm, e.component, e.modifierid, e.timemodified,
+                        ef.id AS examfileid, ef.taken
+                  FROM {examregistrar_exams} e  
+             LEFT JOIN {examregistrar_examfiles} ef ON ef.examid = e.id AND ef.status = :status
+                 WHERE  (e.assignplugincm <> 0 OR e.quizplugincm <> 0) AND e.visible = 1";
+        if($exams = $DB->get_records_sql($sql, array('status' => EXAM_STATUS_APPROVED))) {
+            foreach($exams as $exam) {
+                if(!isset($exam->examfileid)) {
+                    $exam->examfileid = 0;
+                }
+                $exam->status = 0;
+                if($exam->assignplugincm > 0) {
+                    $exam->helpermod = 'assign';
+                    $exam->helpercmid = $exam->assignplugincm;
+                    $assign = $DB->get_record('assign', array('id' => $DB->get_field('course_modules', 'instance', array('id' => $exam->assignplugincm))));
+                    $exam->timeopen = $assign->allowsubmissionsfromdate;
+                    $exam->timeclose = $assign->duedate;
+                    $exam->timelimit = $assign->duedate - $assign->allowsubmissionsfromdate;
+                    $DB->insert_record('examregistrar_examdelivery', $exam);
+                }  
+                if($exam->quizplugincm > 0) {
+                    $quiz = $DB->get_record('quiz', array('id' => $DB->get_field('course_modules', 'instance', array('id' => $exam->quizplugincm))));
+                    $exam->helpermod = 'quiz';
+                    $exam->helpercmid = $exam->quizplugincm;
+                    $exam->timeopen = $quiz->timeopen;
+                    $exam->timeclose = $quiz->timeclose;
+                    $exam->timelimit = $quiz->timelimit;
+                    $DB->insert_record('examregistrar_examdelivery', $exam);
+                }  
+            }
+        }
+    
+        // Define field deliveryid to be added to responses table.
+        $table = new xmldb_table('examregistrar_exams');
+        $field = new xmldb_field('assignplugincm', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        // Conditionally launch drop field assignplugincm.
+        if ($dbman->field_exists($table, $field)) {
+            //$dbman->drop_field($table, $field);
+        }    
+        
+        $field = new xmldb_field('quizplugincm', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        // Conditionally launch drop field quizplugincm.
+        if ($dbman->field_exists($table, $field)) {
+            //$dbman->drop_field($table, $field);
+        }    
+    
+    
+    
+    ////TODO remove not needed
+        ////TODO remove not needed
+            ////TODO remove not needed
+                ////TODO remove not needed
+                    ////TODO remove not needed
+    
+    
+        upgrade_mod_savepoint(true, 2021021500, 'examregistrar');
+    }        
+    
     return true;
 }

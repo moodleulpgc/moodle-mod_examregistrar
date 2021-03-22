@@ -206,6 +206,33 @@ class examregistrar_examsession_form extends moodleform {
 
 class examregistrar_exam_form extends moodleform {
 
+    /**
+     * Get exam & delivery mode defaults
+     * @param object $mform the form being built.
+     * @param $label the label to use for each option.
+     * @param $gradeoptions the possible grades for each answer.
+     * @param $repeatedoptions reference to array of repeated options to fill
+     * @param $answersoption reference to return the name of $question->options
+     *      field holding an array of answers
+     * @return array of form fields.
+     */
+    protected function get_exam_delivery($item) {
+        global $DB;
+        $exam = false;
+        $deliverynum = 1;
+        if($item > 0) {
+            $sql = "SELECT e.*, c.shortname, c.fullname, c.category
+                    FROM {examregistrar_exams} e
+                    JOIN {course} c ON e.courseid = c.id
+                    WHERE e.id = :id ";
+            $exam = $DB->get_record_sql($sql, array('id'=>$item), MUST_EXIST);
+        }        
+        if($exam) {
+            $deliverynum = $DB->count_records('examregistrar_examdelivery', array('examid' => $exam->id));
+        }
+        return [$exam, $deliverynum];
+    }
+
     function definition() {
         global $DB;
 
@@ -216,19 +243,12 @@ class examregistrar_exam_form extends moodleform {
         $exreg = examregistrar_get_primaryid($examreg);
 
         $annualitymenu = examregistrar_elements_getvaluesmenu($examreg, 'annualityitem', $exreg, 'choose');
+        $mform->addElement('header', 'examdata', get_string('examitem', 'examregistrar'));
         $mform->addElement('select', 'annuality', get_string('annualityitem', 'examregistrar'), $annualitymenu);
         $mform->addHelpButton('annuality', 'annualityitem', 'examregistrar');
         $mform->addRule('annuality', null, 'required', null, 'client');
-
-        $exam = false;
-        if($item > 0) {
-            $sql = "SELECT e.*, c.shortname, c.fullname, c.category
-                    FROM {examregistrar_exams} e
-                    JOIN {course} c ON e.courseid = c.id
-                    WHERE e.id = :id ";
-            $exam = $DB->get_record_sql($sql, array('id'=>$item), MUST_EXIST);
-        }
-
+        
+        list($exam, $deliverynum) = $this->get_exam_delivery($item);
         $programmes = array(''=>get_string('choose'));
         $courses = array(''=>get_string('choose'));
         if($exam) {
@@ -248,7 +268,7 @@ class examregistrar_exam_form extends moodleform {
             }
             
             unset($categories);
-            $scourses = get_courses("all", "c.shortname ASC", "c.id, c.shortname, c.fullname");
+            $scourses = get_courses("all", "c.shortname ASC", "c.id, c.shortname, c.fullname, c.visible");
             foreach($scourses as $cid => $course) {
                 $courses[$cid] = $course->shortname.' - '.$course->fullname;
             }
@@ -295,6 +315,19 @@ class examregistrar_exam_form extends moodleform {
         $mform->addElement('selectyesno', 'visible', get_string('visibility', 'examregistrar'));
         $mform->setDefault('visible', 1);
 
+        if(!$deliverynum) {
+            $deliverynum = 1;
+        }
+                
+        $repeatedoptions = array();
+        $repeated = examregistrar_get_per_delivery_fields($exam, $mform, $repeatedoptions);
+
+        
+        $this->repeat_elements($repeated, $deliverynum, $repeatedoptions, 
+                                'deliver_repeats', 'deliver_add_fields', 1, 
+                                get_string('adddelivery' , 'examregistrar'), false);        
+        
+        
         $mform->addElement('hidden', 'examregid', $exreg);
         $mform->setType('examregid', PARAM_INT);
 
@@ -306,7 +339,7 @@ class examregistrar_exam_form extends moodleform {
         $mform->addElement('hidden', 'id', $cmid);
         $mform->setType('id', PARAM_INT);
         $mform->setConstant('id', $cmid);
-
+        
         $this->add_action_buttons(true, get_string('save', 'examregistrar'));
     }
 }

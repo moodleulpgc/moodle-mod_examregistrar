@@ -379,6 +379,7 @@ if($upload) {
                             $element->callnum = abs($element->callnum);
                             $element->additional = 1;
                         }
+                        examregistrar_exam_add_deliverymodes($element);
                     }
                     $mform->set_data($element);
                 }
@@ -411,6 +412,10 @@ if($upload) {
                     }
                 }
                 
+                if($data->id && ($edit == 'exams') && ($itemtable == 'examregistrar_exams')) {
+                    //some data edited in exams table, manage examdelivery data
+                    examregistrar_exam_addupdate_delivery_formdata($data->id, $formdata, $eventdata);
+                }
                 if($data->id && $itemtable == 'examregistrar_locations') {
                     examregistrar_set_location_tree($data->id);
                 }

@@ -395,6 +395,9 @@ class examregistrar_addextracall_actionform extends moodleform {
             $mform->addElement('static', 'examdate', get_string('examsessionitem', 'examregistrar'), $exam->sessionname.', '.userdate($exam->examdate, get_string('strftimedaydate')));
         }
 
+        $mform->addElement('hidden', 'courseid', $exam->courseid);
+        $mform->setType('courseid', PARAM_INT);
+        
         $menu = examregistrar_get_referenced_namesmenu($examreg, 'examsessions', 'examsessionitem', $exreg, 'choose');
         $mform->addElement('select', 'examsession', get_string('examsessionitem', 'examregistrar'), $menu);
         $mform->addHelpButton('examsession', 'examsessionitem', 'examregistrar');
@@ -411,7 +414,8 @@ class examregistrar_addextracall_actionform extends moodleform {
         }
         $users = array(0=>get_string('choose')) + $users;
 
-        $mform->addElement('select', 'userid', get_string('student', 'examregistrar'), $users);
+        $select = $mform->addElement('select', 'userids', get_string('student', 'examregistrar'), $users);
+        $select->setMultiple(true);
         //$mform->addHelpButton('userid', 'student', 'examregistrar');
 
 
@@ -427,6 +431,17 @@ class examregistrar_addextracall_actionform extends moodleform {
         $mform->addHelpButton('booked', 'booking', 'examregistrar');
         $mform->setDefault('booked', 1);
 
+        $mform->addElement('selectyesno', 'userexceptions', get_string('adduserexceptions', 'examregistrar'));                        
+        
+        $repeatedoptions = array();
+        $repeated = examregistrar_get_per_delivery_fields($exam, $mform, $repeatedoptions);
+        
+        $this->repeat_elements($repeated, 1, $repeatedoptions, 
+                                'deliver_repeats', 'deliver_add_fields', 1, 
+                                get_string('adddelivery' , 'examregistrar'), false);        
+
+        
+                                
         $mform->addElement('hidden', 'exam', $examid);
         $mform->setType('exam', PARAM_INT);
 

@@ -251,6 +251,7 @@ if($action == 'sessionrooms' || $action == 'roomstaffers') {
             }
         } elseif($action == 'addextracall' || $action == 'addextrasessioncall') {
             $examid = $formdata->exam;
+            $deliveryexams = [];
             // we are adding based on existing exam
             if($exam = $DB->get_record('examregistrar_exams', array('id' => $examid))) {
                 $sql = "FROM {examregistrar_exams}
@@ -439,40 +440,55 @@ if($action == 'sessionrooms' || $action == 'roomstaffers') {
                             }
                         }
                     }
+                    // manage examdelivery for extracall
+                        $eventdata = array();
+                        $eventdata['objectid'] = $extraexamid;
+                        $eventdata['context'] = $context;
+                        $eventdata['other'] = array();
+                        $eventdata['other']['edit'] = 'exams';
+                    $deliveryexams = examregistrar_exam_addupdate_delivery_formdata($extraexamid, $exam->courseid, $formdata, $eventdata);
                 }
                 /// now book student for new exam call
-                if($extraexamid && $formdata->userid && $formdata->bookedsite) {
-                    if($booking = $DB->get_record('examregistrar_bookings', array('userid'=>$formdata->userid, 'examid'=>$extraexamid))) {
-                        $booking->bookedsite = $formdata->bookedsite;
-                        $booking->booked = $formdata->booked;
-                        $booking->component = '';
-                        $booking->modifierid = $USER->id;
-                        $booking->timemodified = time();
-                        $DB->update_record('examregistrar_bookings', $booking);
-                    } else {
-                        $booking = new stdClass;
-                        $booking->userid = $formdata->userid;
-                        $booking->examid = $extraexamid;
-                        $booking->bookedsite = $formdata->bookedsite;
-                        $booking->booked = $formdata->booked;
-                        $booking->component = '';
-                        $booking->modifierid = $USER->id;
-                        $booking->timemodified = time();
-                        $booking->id = $DB->insert_record('examregistrar_bookings', $booking);
-                        $voucher = examregistrar_set_booking_voucher($examregprimaryid, $booking->id, $booking->timemodified);
+                if($extraexamid && $formdata->userids && $formdata->bookedsite) {
+                    foreach($formdata->userids as $userid) {
+                        if($booking = $DB->get_record('examregistrar_bookings', array('userid'=>$userid, 'examid'=>$extraexamid))) {
+                            $booking->bookedsite = $formdata->bookedsite;
+                            $booking->booked = $formdata->booked;
+                            $booking->component = '';
+                            $booking->modifierid = $USER->id;
+                            $booking->timemodified = time();
+                            $DB->update_record('examregistrar_bookings', $booking);
+                        } else {
+                            $booking = new stdClass;
+                            $booking->userid = $userid;
+                            $booking->examid = $extraexamid;
+                            $booking->bookedsite = $formdata->bookedsite;
+                            $booking->booked = $formdata->booked;
+                            $booking->component = '';
+                            $booking->modifierid = $USER->id;
+                            $booking->timemodified = time();
+                            $booking->id = $DB->insert_record('examregistrar_bookings', $booking);
+                            $voucher = examregistrar_set_booking_voucher($examregprimaryid, $booking->id, $booking->timemodified);
+                        }
+                        $eventdata = array();
+                        $eventdata['objectid'] = $booking->id;
+                        $eventdata['context'] = $context;
+                        $eventdata['relateduserid'] = $booking->userid;
+                        $eventdata['other'] = array();
+                        $eventdata['other']['examregid'] = $examregistrar->id;
+                        $eventdata['other']['examid'] = $booking->examid;
+                        $eventdata['other']['booked'] = $booking->booked;
+                        $eventdata['other']['bookedsite'] = $booking->bookedsite;
+                        $event = \mod_examregistrar\event\booking_submitted::create($eventdata);
+                        $event->add_record_snapshot('examregistrar_bookings', $record);
+                        $event->trigger();
+                        
+                        if($formdata->userexceptions && $deliveryexams) {
+                            foreach($deliveryexams as $delivery) {
+                                examregistrar_process_exam_delivery_user_override($delivery, $userid);
+                            }
+                        }
                     }
-                    $eventdata = array();
-                    $eventdata['objectid'] = $booking->id;
-                    $eventdata['context'] = $context;
-                    $eventdata['relateduserid'] = $booking->userid;
-                    $eventdata['other'] = array();
-                    $eventdata['other']['examregid'] = $examregistrar->id;
-                    $eventdata['other']['examid'] = $booking->examid;
-                    $eventdata['other']['booked'] = $booking->booked;
-                    $eventdata['other']['bookedsite'] = $booking->bookedsite;
-                    $event = \mod_examregistrar\event\booking_submitted::create($eventdata);
-                    $event->add_record_snapshot('examregistrar_bookings', $record);
-                    $event->trigger();
                 }
             }
         }
