@@ -138,7 +138,7 @@
         <INDEX NAME="examregid-annuality-courseid-period-examscope-callnum" UNIQUE="true" FIELDS="examregid,annuality,courseid,period,examscope,callnum" COMMENT="Ensures uniqueness of exams."/>
         </INDEXES>
     </TABLE>
-    <TABLE NAME="examregistrar_examfiles" COMMENT="Keeps information of PDF files corresponding to eachg exam.">
+    <TABLE NAME="examregistrar_examfiles" COMMENT="Keeps information of exam version (and PDF files) corresponding to each exam. Attempt keeps the questions in each version.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="examid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
@@ -163,6 +163,30 @@
       <INDEXES>
         <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
         <INDEX NAME="examid-attempt" UNIQUE="true" FIELDS="examid, attempt" COMMENT="Ensures uniqueness of exam attempts."/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="examregistrar_examdelivery" COMMENT="Keeps information of delivery adjustements for each version.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="examid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="helpermod" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="helpercmid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timeopen" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The time when this exam opens. (0 = no restriction.)"/>
+        <FIELD NAME="timeclose" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The time when this exam closes. (0 = no restriction.)"/>
+        <FIELD NAME="timelimit" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The time limit for exam attempts, in seconds."/>
+        <FIELD NAME="status" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="parameters" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="Defines the component which added this item, or blank if it was added manually."/>
+        <FIELD NAME="modifierid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="If the 'component' field is set, this defines the instance of the component that created the entry. Otherwise it indicates the userid that added it manually."/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="examid" TYPE="foreign" FIELDS="examid" REFTABLE="examregistrar_exams" REFFIELDS="id"/>
+        <KEY NAME="helpercmid" TYPE="foreign" FIELDS="helpercmid" REFTABLE="course_modules" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="examregistrar_locations" COMMENT="Stores information about places, venues and rooms">
@@ -305,6 +329,7 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="examsession" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="examid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="deliveryid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="roomid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="additional" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="examfile" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
@@ -336,6 +361,7 @@
         <FIELD NAME="examsession" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="bookedsite" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="examid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="deliveryid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="roomid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="additional" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>

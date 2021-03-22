@@ -314,6 +314,8 @@ Esta opción identifica la Convocatoria a emplear. Seleccione un valor del menú
 $string['periodtypeitem'] = 'Tipo de convocatoria';
 $string['periodtypeitem_help'] = '
 Esta opción identifica el tipo de convocatoria a emplear. Seleccione un valor del menú restringido de ítems disponibles.';
+$string['examdelivery'] = 'Modo de Impartición';
+$string['examdeliverymode'] = 'Modo de Impartición {$a}';
 $string['examsessionitem'] = 'Sesión';
 $string['examsessionitem_help'] = '
 Esta opción identifica la sesión de examen a emplear. Seleccione un valor del menú restringido de ítems disponibles.';
@@ -743,6 +745,7 @@ $string['sortbooked'] = 'Más inscritos';
 $string['sortroomname'] = 'Nombre del aula';
 $string['sortseats'] = 'Puestos totales';
 $string['sortfreeseats'] = 'Puestos libres';
+$string['adddelivery'] = 'Añadir nuevo modo de impartición';
 $string['addextracall'] = 'Añadir turno extra oculto';
 $string['extraexamcall'] = 'Turno extra oculto';
 $string['extraexamcall_help'] = '
@@ -1010,3 +1013,36 @@ La adición ocurre desde Gestión de Sesión cuando se llama a cargar la spregun
 $string['optionsinstance'] = 'Instancia de Opciones';
 $string['optionsinstance_help'] = 'Si se introduce un valor no nulo (dígitos, no texto), 
 las opciones de configuración de los Cuestionarios de Examen se ajustarán a las de esta instancia. ';
+$string['chooseaparameter'] = 'Elija un parámetro';
+$string['deliveryparameters'] = 'Parámetros';
+$string['deliveryparameters_help'] = 'Parámetros ajustables para cada tipo de Impartición del Examen. 
+Para establecer un parámetro simplemenet escoja su nombre del menú y escriba el valor asignado en la casilla adjacente. 
+
+Para valores SI/No use 0 para "no" y 1 para "Si"';
+$string['randomize'] = 'Aleatorizar orden de preguntas';
+$string['helpercmid'] = 'Módulo de Actividad';
+$string['helpercmid_help'] = 'Un módulo de Actividad existente en el curso asociado al Examen que se empleará para administrar el Examen a los estudiantes. 
+El modo propio de Registro de Exámenes es realizar exámenes en Aulas entregando Exámenes impresos a partir de PDFs descargados por los Examinadores. 
+No obstante, seleccionando una opción Registro de Examen se pueden indicar fechas y franjas de inicio/cierre/duración, 
+así como otras opiones, de forma específica para Imparticiones especiales..
+
+Otras alternativas son: 
+
+ * Cuestionario: una instancia de Cuestionario para que los estudiantes realicen el examen online.
+ * Examen escaneable: una instancia de Examen escaneable que contiene para impresión por plantillas.
+ * Tarea: una instancia de Tarea para que los estudiantes realicen el examen online. 
+ 
+Una vez que se ha especificado un modo de impartición (instancia), las otras opciones quedan habilitadas.';
+
+$string['helpertimeopen'] = 'Apertura';
+$string['helpertimeopen_help'] = 'Los estudiantes solo pueden realizar el examen después de su Apertura y antes del Cierre, en la ventana de tiempo entre esos dos momentos. 
+Students can only start their attempt(s) to take the Exam after the open time and they must complete their attempts before the close time.';
+$string['helpertimeclose'] = 'Cierre';
+$string['helpertimelimit'] = 'Duracion';
+$string['helpertimelimit_help'] = 'Esta es la duración del Examen.
+
+Para un Cuestionario se traduce en el parámetro "Límite de tiempo", esto es, la duración efectiva del examen tras comenzar un intento. 
+
+Para una Tarea establece el Plazo de entrega, entregas posteriores serán marcadas como "Retrasado". ';
+$string['adduserexceptions'] = 'Añadir excepciones de usuario';
+

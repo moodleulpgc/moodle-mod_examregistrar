@@ -334,6 +334,9 @@ This option identifies the academic Exam period to use. Choose from a menu of va
 $string['periodtypeitem'] = 'Period type';
 $string['periodtypeitem_help'] = '
 This option identifies the academic Exam period to use. Choose from a menu of values set by Admins.';
+$string['examdelivery'] = 'Give mode';
+$string['examdeliverymode'] = 'Give mode {$a}';
+
 $string['examsessionitem'] = 'Session';
 $string['examsessionitem_help'] = '
 This option identifies the academic Exam session (day, hour) to use. Choose from a menu of values set by Admins.';
@@ -786,6 +789,7 @@ $string['sortroomname'] = 'Room name';
 $string['sortseats'] = 'Total seats';
 $string['sortfreeseats'] = 'Free seats';
 
+$string['adddelivery'] = 'Add new delivery mode';
 $string['addextracall'] = 'Add hidden extra call';
 $string['addextrasessioncall'] = 'Add session extra call';
 $string['extraexamcall'] = 'Hidden extra call';
@@ -1099,3 +1103,30 @@ $string['optionsinstance'] = 'Instance for Options';
 $string['optionsinstance_help'] = 'If a non-zero value, the configuration options for all Exam quizzes will be taken from this instance. ';
 $string['quizoptions'] = 'Quiz Options fields';
 $string['quizoptions_help'] = 'The quiz configuration options to be set automatically for all Exam Quizzes, a a comma-separated list. Include just "review" for all review options. ';
+$string['chooseaparameter'] = 'Choose a parameter';
+$string['deliveryparameters'] = 'Parameters';
+$string['deliveryparameters_help'] = 'Customizable parameters for each delivery mode. 
+To set a paramenter just select the appropiate name form the available menu and input a value for that parameter. 
+
+For Yes/No values use 0 for "no" and 1 for "yes"';
+$string['randomize'] = 'Randomize';
+$string['helpercmid'] = 'Activity instance';
+$string['helpercmid_help'] = 'An activity module used to deliver the exam to students. 
+Exam Registrar native way is to allow Staff to download & print PDF exams to be given in classrooms. 
+However, by selecting Exam Registrar option customized dates may be set for giving the exam.
+
+Other alternatives are: 
+
+ * Assign: an Assigment instance for taking exam online. 
+ * Quiz: a Quiz instance  for taking exam online.
+ * Offline Quiz: an Offline Quiz instance for later printing.
+
+Once an instance is selected then the other settings can be specified. ';
+
+$string['helpertimeopen'] = 'Open exam';
+$string['helpertimeopen_help'] = 'Students can only start their attempt(s) to take the Exam after the open time and they must complete their attempts before the close time.';
+$string['helpertimeclose'] = 'Close exam';
+$string['helpertimelimit'] = 'Exam duration';
+$string['helpertimelimit_help'] = 'This is the Exam duration, for a Quiz this is translated for the time limit parameter';
+$string['adduserexceptions'] = 'Add user overrides';
+

@@ -88,21 +88,23 @@ $sel_scope  = optional_param('sscope', '', PARAM_ALPHANUMEXT);
 $sel_callnum  = optional_param('scallnum', 0, PARAM_INT);
 $sel_session  = optional_param('ssession', 0, PARAM_INT);
 $sel_booked  = optional_param('sbooked', '', PARAM_ALPHANUMEXT);
+$sel_delivery  = optional_param('sdelivery', null, PARAM_ALPHANUMEXT);
 $bookedsite   = optional_param('venue', 0, PARAM_INT);
 
-$params = array('id'=>$cm->id, 'edit' => $edit,
+$selparams = array('id'=>$cm->id, 'edit' => $edit,
                       'sannuality' => $sel_annuality,
                       'sprogramme' => $sel_programme,
                       'sshortname' => $sel_shortname,
                       'sterm'      => $sel_term,
                       'speriod'    => $sel_period,
                       'sscope'     => $sel_scope,
-                      'ssession'     => $sel_session,
+                      'ssession'   => $sel_session,
                       'sbooked'    => $sel_booked,
+                      'sdelivery'  => $sel_delivery,
                        'venue'     => $bookedsite,
                       );
 
-$manageurl = new moodle_url($baseurl, $params);
+$manageurl = new moodle_url($baseurl, $selparams);
 
 /// Print heading & filter
 if (!$table->is_downloading()) {
@@ -161,10 +163,19 @@ if (!$table->is_downloading()) {
         echo html_writer::select($callmenu, "scallnum", $sel_callnum);
         echo ' &nbsp; ';
 
-        //$periodmenu = examregistrar_elements_getvaluesmenu($examregistrar, 'perioditem', $examregprimaryid);
         $sessionmenu = examregistrar_get_referenced_namesmenu($examregistrar, 'examsessions', 'examsessionitem', $examregprimaryid, 'choose');
         echo html_writer::label(get_string('examsessionitem', 'examregistrar').': ', 'ssession');
         echo html_writer::select($sessionmenu, "ssession", $sel_session);
+        echo ' &nbsp; ';
+
+        $deliverymenu = array(''=>get_string('choose'),
+                            'examregistrar' => get_string('pluginname', 'examregistrar'),
+                            'assign' => get_string('pluginname', 'assign'),
+                            'quiz' => get_string('pluginname', 'quiz'),
+                            'offlinequiz' => get_string('pluginname', 'offlinequiz'),
+                            );
+        echo html_writer::label(get_string('examdelivery', 'examregistrar').': ', 'sexamdelivery');
+        echo html_writer::select($deliverymenu, "sdelivery", $sel_delivery);
         echo ' &nbsp; ';
 
         $bookedmenu = array(''=>get_string('choose'),
@@ -183,17 +194,17 @@ if (!$table->is_downloading()) {
     echo $OUTPUT->heading(html_writer::link($url, get_string('add'.$itemname, 'examregistrar')));
 }
 
-$tablecolumns = array('checkbox', 'annualityname', 'programme', 'shortname', 'periodname',
-                      'scopename', 'callnum', 'sessionname', 'examdate', 'action');
+$tablecolumns = array('checkbox', 'annualityname', 'shortname', 'periodname',
+                      'scopename', 'callnum', 'sessionname', 'examdelivery', 'action');
 $tableheaders = array(html_writer::checkbox('selectall', 1, false, '', array('id'=>'selectall')),
                         get_string('annualityitem', 'examregistrar'),
-                        get_string('programme', 'examregistrar'),
-                        get_string('shortname', 'examregistrar'),
+//                        get_string('programme', 'examregistrar'),
+                        get_string('course', 'examregistrar'),
                         get_string('perioditem', 'examregistrar'),
                         get_string('scopeitem', 'examregistrar'),
                         get_string('callnum', 'examregistrar'),
                         get_string('examsessionitem', 'examregistrar'),
-                        get_string('examdate', 'examregistrar'),
+                        get_string('examdelivery', 'examregistrar'),
                         get_string('action'),
                         );
 $table->define_columns($tablecolumns);
@@ -214,6 +225,7 @@ $table->set_additionalfields('setsession', array($label.$select));
 
 $table->sortable(true, 'annualityname, periodname', SORT_ASC);
 $table->no_sorting('checkbox');
+$table->no_sorting('examdelivery');
 $table->no_sorting('action');
 
 $table->set_attribute('id', 'examregistrar_'.$edit.$examregistrar->id);
@@ -239,10 +251,10 @@ $table->setup();
                 JOIN {examregistrar_elements} et ON e.examregid =  et.examregid AND et.type = 'termitem' AND p.term = et.id
                 LEFT JOIN {examregistrar_examsessions} s ON e.examregid =  s.examregid AND e.examsession = s.id
                 LEFT JOIN {examregistrar_elements} esn ON s.examregid =  esn.examregid AND esn.type = 'examsessionitem' AND s.examsession = esn.id
-            WHERE e.examregid = :examregid ";
-    $params = array('examregid'=>$examregprimaryid);
+                ";
 
-    $where = '';
+    $where = " WHERE e.examregid = :examregid " ;
+    $params = array('examregid'=>$examregprimaryid);
     if($sel_annuality) {
         $where .= ' AND e.annuality = :annuality ';
         $params['annuality'] = $sel_annuality;
@@ -292,6 +304,20 @@ $table->setup();
             $where .= " AND NOT EXISTS $booking ";
         }
     }
+    if($sel_delivery) {
+        if($sel_delivery == 'examregistrar') {
+            $delivery = "(SELECT 1
+                            FROM {examregistrar_examdelivery} ed
+                            WHERE ed.examid = e.id AND ed.helpermod IS NULL)";
+            $where .= " AND  EXISTS $delivery ";
+        } else {
+            $delivery = "(SELECT 1
+                            FROM {examregistrar_examdelivery} ed
+                            WHERE ed.examid = e.id AND ed.helpermod = :helpermod )";
+            $where .= " AND  EXISTS $delivery ";
+            $params['helpermod'] = $sel_delivery;
+        }
+    }
 
 $totalcount = $DB->count_records_sql($count.$sql.$where, $params);
 
@@ -309,6 +335,7 @@ $sort .= ', e.programme ASC,  c.shortname ASC ';
 $stredit   = get_string('edit');
 $strdelete = get_string('delete');
 $straddcall = get_string('addextracall', 'examregistrar');
+$stradddelivery = get_string('adddelivery', 'examregistrar');
 $examurl = new \moodle_url('/course/view.php', array('id' => 0));
 
 $elements = $DB->get_records_sql($select.$sql.$where.$sort, $params, $table->get_page_start(), $table->get_page_size());
@@ -318,9 +345,11 @@ if($elements) {
         $rowclass = '';
         $data[] = $table->col_checkbox($element);
         $data[] = $table->col_formatitem($element->annualityname, $element->annualityidnumber);
-        $data[] = $table->col_formatitem('', $element->programme);
+        //$data[] = $table->col_formatitem('', $element->programme);
+        $rowdata = $table->col_formatitem('', $element->programme).' - '. $table->col_formatitem('', $element->shortname);
         $examurl->param('id', $element->courseid);
-        $data[] = \html_writer::link($examurl, $table->col_formatitem('', $element->shortname)).' - '.$element->fullname;
+        $data[] = \html_writer::link($examurl, $rowdata).\html_writer::div($element->fullname, 'reduced');
+        //$data[] = \html_writer::link($examurl, $table->col_formatitem('', $element->shortname)).' - '.$element->fullname;
 
         $rowclass = examregistrar_check_exam_term($element);
         $data[] = $table->col_formatitem($element->periodname, $element->periodidnumber, $rowclass);
@@ -328,8 +357,13 @@ if($elements) {
         $data[] = $element->callnum;
 
         $rowclass = examregistrar_check_exam_session($element);
-        $data[] = $element->examsession ? $table->col_formatitem($element->sessionname, $element->sessionidnumber, $rowclass) : '';
-        $data[] = $element->examdate ? userdate($element->examdate, get_string('strftimedaydate')) : '';
+        $rowdata = $element->examsession ? $table->col_formatitem($element->sessionname, $element->sessionidnumber, $rowclass) : ''; 
+        $rowdata .= $element->examdate ? \html_writer::div(userdate($element->examdate, get_string('strftimedaydate')), ' reduced '): '';
+        $data[] = $rowdata;
+        
+        $rowdata = examregistrar_exam_delivery_instances($element, $manageurl, true);
+        $data[] = $rowdata;
+        
         $rowclass = '';
         if(!$element->visible) {
             $rowclass = 'dimmed_text';
@@ -356,9 +390,19 @@ if($elements) {
             $buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/edit', $stredit, 'moodle', array('class'=>'iconsmall', 'title'=>$stredit)));
             $url = new moodle_url($manageurl, array('del'=>$element->id));
             $buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/delete', $strdelete, 'moodle', array('class'=>'iconsmall', 'title'=>$strdelete)));
-            $actionurl = new moodle_url('/mod/examregistrar/manage/action.php', array('id'=>$cm->id,'edit'=>$edit));
+            
+            $actionurl = new moodle_url('/mod/examregistrar/manage/action.php', array('id'=>$cm->id,'edit'=>$edit)+$selparams);
             $actionurl->params(array('action'=>'addextracall', 'exam'=>$element->id));
-            $buttons[] = html_writer::link($actionurl, $OUTPUT->pix_icon('i/manual_item', $straddcall, 'moodle', array('class'=>'iconsmall', 'title'=>$straddcall)));
+            $buttons[] = html_writer::link($actionurl, $OUTPUT->pix_icon('i/addblock', $straddcall, 'moodle', array('class'=>'iconsmall', 'title'=>$straddcall)));
+            
+            /*
+            //$actionurl = new moodle_url('/mod/examregistrar/manage/action.php', array('id'=>$cm->id,'edit'=>$edit));
+            $actionurl->params(array('action'=>'adddelivery', 'exam'=>$element->id));
+            $buttons[] = html_writer::link($actionurl, $OUTPUT->pix_icon('t/copy', $stradddelivery, 'moodle', array('class'=>'iconsmall', 'title'=>$stradddelivery)));
+            */
+            
+            
+            
             $action = implode('&nbsp;&nbsp;', $buttons);
         }
         $data[] = $action;
