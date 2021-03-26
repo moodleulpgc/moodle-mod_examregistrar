@@ -604,7 +604,7 @@ function examregistrar_review_addissue($examregistrar, $course, $examfile, $trac
         if($mkattempt = $examobj->get_makeexam_attempt($examfile->id, true)) {
             $filelink .= '<br />';
             $attemptname = $mkattempt->name .' ('.userdate($mkattempt->timecreated, get_string('strftimerecent')).') ';
-            $url = new moodle_url('/mod/quiz/report.php', array('id' => $mkattempt->cm, 'mode' => 'makeexam', 'review' => $mkattempt->review, 'confirm' => 1, 'sesskey' => sesskey()));
+            $url = new moodle_url('/mod/quiz/report.php', array('id' => $mkattempt->cm, 'mode' => 'makeexam', 'review' => $mkattempt->review, 'confirm' => 1));
             $icon = new pix_icon('icon', $strexamfile, 'quiz', array('class'=>'icon', 'title'=>$strexamfile));
             $filelink .= $OUTPUT->action_link($url,$attemptname, null, null, $icon);
         }
