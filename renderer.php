@@ -1134,7 +1134,7 @@ class mod_examregistrar_renderer extends plugin_renderer_base {
                             if(isset($exam->exam->quizplugincm) && $exam->exam->quizplugincm) {
                                 //https://localhost/moodle39ulpgc/mod/quiz/report.php?id=7989&mode=makeexam&review=6&confirm=1&sesskey=4K3hrYhCMu
                                 if($mkattempt = $exam->get_makeexam_attempt($attempt)) {
-                                    $url = new moodle_url('/mod/quiz/report.php', array('id' => $mkattempt->cm, 'mode' => 'makeexam', 'review' => $mkattempt->review, 'confirm' => 1, 'sesskey' => sesskey()));
+                                    $url = new moodle_url('/mod/quiz/report.php', array('id' => $mkattempt->cm, 'mode' => 'makeexam', 'review' => $mkattempt->review, 'confirm' => 1));
                                     $icon = new pix_icon('icon', $strexamfile, 'quiz', array('class'=>'icon', 'title'=>$strexamfile));
                                     $cellattempt .= $this->output->action_link($url,$attemptname, null, null, $icon);                            
                                     $attemptname = '';
