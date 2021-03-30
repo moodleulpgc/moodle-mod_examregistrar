@@ -277,6 +277,7 @@ if($action == 'sessionrooms' || $action == 'roomstaffers') {
                     $exam->modifierid = $USER->id;
                     $exam->timemodified = time();
                     if($extraexamid = $DB->insert_record('examregistrar_exams', $exam)) {
+                        $exam->id = $extraexamid;
                         $eventdata = array();
                         $eventdata['objectid'] = $extraexamid;
                         $eventdata['context'] = $context;

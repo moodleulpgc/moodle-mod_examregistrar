@@ -208,13 +208,8 @@ class examregistrar_exam_form extends moodleform {
 
     /**
      * Get exam & delivery mode defaults
-     * @param object $mform the form being built.
-     * @param $label the label to use for each option.
-     * @param $gradeoptions the possible grades for each answer.
-     * @param $repeatedoptions reference to array of repeated options to fill
-     * @param $answersoption reference to return the name of $question->options
-     *      field holding an array of answers
-     * @return array of form fields.
+     * @param int $item examid
+     * @return array of exam, deliverymode.
      */
     protected function get_exam_delivery($item) {
         global $DB;

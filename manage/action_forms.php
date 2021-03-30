@@ -461,6 +461,29 @@ class examregistrar_addextracall_actionform extends moodleform {
 
 class examregistrar_addextrasessioncall_actionform extends moodleform {
 
+    /**
+     * Get exam & delivery mode defaults
+     * @param int $item examid
+     * @return array of exam, deliverymode.
+     */
+    protected function get_exam_delivery($item) {
+        global $DB;
+        $exam = false;
+        $deliverynum = 1;
+        if($item > 0) {
+            $sql = "SELECT e.*, c.shortname, c.fullname, c.category
+                    FROM {examregistrar_exams} e
+                    JOIN {course} c ON e.courseid = c.id
+                    WHERE e.id = :id ";
+            $exam = $DB->get_record_sql($sql, array('id'=>$item), MUST_EXIST);
+        }        
+        if($exam) {
+            $deliverynum = $DB->count_records('examregistrar_examdelivery', array('examid' => $exam->id));
+        }
+        return [$exam, $deliverynum];
+    }
+
+
     function definition() {
         global $COURSE, $DB;
 
@@ -577,6 +600,16 @@ class examregistrar_addextrasessioncall_actionform extends moodleform {
         $mform->addHelpButton('booked', 'booking', 'examregistrar');
         $mform->setDefault('booked', 1);
 
+        // delivery 
+        if($extraexamid) {
+            list($extraexam, $deliverynum) = $this->get_exam_delivery($extraexamid);
+        }
+        
+        
+        
+        
+        
+        
         $mform->addElement('hidden', 'examsession', $session);
         $mform->setType('examsession', PARAM_INT);
         $mform->addElement('hidden', 'examshort', $short);
