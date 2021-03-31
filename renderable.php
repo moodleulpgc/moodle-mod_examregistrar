@@ -125,7 +125,10 @@ class examregistrar_exam implements renderable {
     public function __construct($exam, $field='id') {
         $this->examid = $exam->$field;
 
-        $params = array('annuality', 'courseid', 'programme', 'shortname', 'fullname', 'period', 'callnum', 'examscope', 'examsession', 'visible', 'assignplugincm', 'quizplugincm');
+        $params = array('annuality', 'courseid', 'programme', 'shortname', 'fullname', 
+                        'period', 'callnum', 'examscope', 'examsession', 'visible', 
+                        'assignplugincm', 'quizplugincm', 'deliveryid', 'helpermod', 
+                        'helpercmid', 'timeopen', 'timeclose', 'timelimit');
         foreach($params as $param) {
             if(isset($exam->$param)) {
                 $this->$param = $exam->$param;
@@ -160,7 +163,18 @@ class examregistrar_exam implements renderable {
         return $examname;
     }
 
+    public function get_exam_deliver_helper($withicon=false, $withlink=false) {
+        global $DB, $OUTPUT;
 
+        $helperurl = new moodle_url('/mod/'.$this->helpermod.'/view.php', ['id' => $this->helpercmid]);
+        $name = $this->get_helpermod_instance_name();
+        if($withicon) {
+            $icon = new pix_icon('icon', '', 'quiz', array('class'=>'icon', 'title'=>''));
+        }
+        
+        return $OUTPUT->action_link($helperurl,$name, null, null, $icon); 
+    }
+    
     public function set_valid_file() {
         global $DB;
 
@@ -195,6 +209,156 @@ class examregistrar_exam implements renderable {
         return $message;
     }
 
+    
+    /**
+     * Returns helper module instance.
+     *
+     * @return stdClass mod instance record as from database plus cmid & modname.
+     */
+    public function get_helpermod_instance() {
+        if(isset($this->helper_instance) && $this->helper_instance) {
+            return $this->helper_instance;
+        }
+        return $this->load_helpermod_instance();
+    }
+    
+    
+    /**
+     * Loads helper module instance. 
+     * Uses fast_modinfo is possible, if not retrieves form database
+     *
+     * @return stdClass mod instance record as from database plus cmid & modname.
+     */
+    public function load_helpermod_instance() {
+        global $DB;
+        
+        $instance = '';
+        
+        if(!empty($this->helpermod) && isset($this->helpercmid) && $this->helpercmid) {
+            if($cminfo = get_fast_modinfo($this->courseid)->cms[$this->helpercmid]) {
+                if($cminfo->instance) {
+                    if($instance = $DB->get_record($this->helpermod, ['id' => $cminfo->instance], '*', MUST_EXIST)) {
+                        $instance->cmid = $this->helpercmid;
+                        $instance->modname = $this->helpermod;
+                    }
+                }
+                
+            }
+            if(!$instance) {
+                $sql = 'SELECT h.*, cm.id AS cmid, m.name AS modname 
+                        FROM {course_modules} cm  
+                        JOIN {modules} m ON cm.module = m.id AND m.name = :helpermod
+                        JOIN {'.$this->helpermod.'} h ON cm.course = h.course AND cm.instance = h.id
+                        WHERE cm.id = :cmid ';
+                $instance = $DB->get_record_sql($sql, array('cmid' => $this->helpercmid, 'helpermod' => $this->helpermod), '*', MUST_EXIST);
+            }
+        }
+
+        if($instance) {
+            $this->helper_instance = $instance;
+            $this->helper_instanceid = $this->helper_instance->id;
+        } else {
+            $this->helper_instance = null;
+            $this->helper_instanceid = null;
+        }
+        
+        return $this->helper_instance;
+    }    
+    
+    /**
+     * Returns helpeer module instance.
+     *
+     * @return bool true of success, false otherwise.
+     */
+    public function get_helpermod_instance_name() {
+        global $DB;
+        
+        if(!empty($this->helpermod) && isset($this->helpercmid) && $this->helpercmid) {
+            if($cminfo = get_fast_modinfo($this->courseid)->cms[$this->helpercmid]) {
+                return $cminfo->name;
+            }
+            $sql = 'SELECT h.name 
+                    FROM {course_modules} cm  
+                    JOIN {modules} m ON cm.module = m.id AND m.name = :helpermod
+                    JOIN {'.$this->helpermod.'} h ON cm.course = h.course AND cm.instance = h.id
+                    WHERE cm.id = :cmid ';
+            
+            $name = $DB->get_field_sql($sql, array('cmid' => $this->helpercmid, 'helpermod' => $this->helpermod));
+        }
+        return $name;
+    }         
+    
+    /**
+     * Returns helper module checking flags.
+     *
+     * @return bool true of success, false otherwise.
+     */
+    public function get_helper_taken_data() {  
+        global $CFG, $DB;
+        
+        $numfinished = 0;
+        $numattempts = 0;
+    
+        // only if exam has started
+        if($this->timeopen < time()) {
+            if(!isset($this->helper_instanceid)) {
+                $this->get_helpermod_instance();
+            }
+
+            if(isset($this->helper_instanceid) && $this->helper_instanceid) {
+                require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');            
+                $numattempts = $DB->count_records('quiz_attempts', 
+                                    array('quiz'=> $this->helper_instanceid, 'preview'=>0));
+                $numfinished = $DB->count_records('quiz_attempts', 
+                                    array('quiz'=> $this->helper_instanceid, 'preview'=>0, 'state' => \quiz_attempt::FINISHED));
+            }
+        }
+        
+        return [$numfinished, $numattempts];
+    }
+    
+    /**
+     * Returns helper module checking flags.
+     *
+     * @return bool true of success, false otherwise.
+     */
+    public function get_helper_flags() {
+        global $DB;
+        
+        $instance = $this->get_helpermod_instance();
+        $flags = [];
+        
+        $isextracall = ($this->callnum < 0);
+        
+        // dates (example is for quiz module)
+        if($instance->timeopen != $this->timeopen) {
+            $flags['timeopen'] = $isextracall ?  'warning' : 'danger';
+        }
+        if($instance->timeclose != $this->timeclose) {
+            $flags['timeclose'] = $isextracall ?  'warning' : 'danger';
+        }
+        if($instance->timelimit != $this->timelimit) {
+            $flags['timelimit'] = $isextracall ?  'warning' : 'danger';
+        }
+        if($instance->password) {
+            $flags['password'] = $isextracall ?  'warning' : 'danger';
+        }
+
+        // makexamlock 
+        $mklock = $DB->get_field('quizaccess_makeexamlock', 'makeexamlock', ['quizid' => $instance->id]);
+        if(empty($mklock)) {
+            $flags['accessfree'] = 'danger';
+        } elseif($mklock != $this->examid) {
+            $flags['accesslocked'] = 'danger';
+        }
+        
+        $controlquestion = false;
+        $flags['questions'] = $this->has_valid_questions($controlquestion) ? 'success' : 'danger';
+        
+        return $flags;
+    }
+    
+    
     public static function get_quiz_from_cmid($cmid) {
         global $DB;
         $sql = "SELECT q.*, cm.id AS cmid 
@@ -329,6 +493,9 @@ class examregistrar_exam implements renderable {
         require_once($CFG->dirroot . '/mod/quiz/locallib.php');
         require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
     
+        if(!$this->quizplugincm) {
+            return false;
+        } 
         list ($course, $cm) = get_course_and_cm_from_cmid($this->quizplugincm, 'quiz');
         $quiz = $DB->get_record('quiz', array('id' => $cm->instance), '*', MUST_EXIST);    
         $quizobj = quiz::create($quiz->id, $USER->id);

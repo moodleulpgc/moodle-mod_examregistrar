@@ -1129,4 +1129,14 @@ $string['helpertimeclose'] = 'Close exam';
 $string['helpertimelimit'] = 'Exam duration';
 $string['helpertimelimit_help'] = 'This is the Exam duration, for a Quiz this is translated for the time limit parameter';
 $string['adduserexceptions'] = 'Add user overrides';
-
+$string['takingmode'] = 'Taking mode';
+$string['alttakingmodeinsession'] = '{$a} Online exams in session';
+$string['managesessionalttaking'] = 'Online exams in session';
+$string['unsynchtimeopen'] = 'Non matching exam start time';
+$string['unsynchtimeclose'] = 'Non matching exam finish time';
+$string['unsynchtimelimit'] = 'Non matching exam duration';
+$string['passwordlocked'] = 'Exam is locked by password';
+$string['mkaccessfree'] = 'There is no access control to exam';
+$string['mkaccesslocked'] = 'There access to exam locked for all by Make Exam';
+$string['invalidquestions'] = 'There are invalid or no questions in the exam';
+$string['okstatus'] = 'All OK';

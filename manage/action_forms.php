@@ -434,13 +434,10 @@ class examregistrar_addextracall_actionform extends moodleform {
         $mform->addElement('selectyesno', 'userexceptions', get_string('adduserexceptions', 'examregistrar'));                        
         
         $repeatedoptions = array();
-        $repeated = examregistrar_get_per_delivery_fields($exam, $mform, $repeatedoptions);
-        
+        $repeated = examregistrar_get_per_delivery_fields($exam->courseid, $mform, $repeatedoptions);
         $this->repeat_elements($repeated, 1, $repeatedoptions, 
                                 'deliver_repeats', 'deliver_add_fields', 1, 
                                 get_string('adddelivery' , 'examregistrar'), false);        
-
-        
                                 
         $mform->addElement('hidden', 'exam', $examid);
         $mform->setType('exam', PARAM_INT);
@@ -601,13 +598,20 @@ class examregistrar_addextrasessioncall_actionform extends moodleform {
         $mform->setDefault('booked', 1);
 
         // delivery 
+        $deliverynum = 0;
         if($extraexamid) {
             list($extraexam, $deliverynum) = $this->get_exam_delivery($extraexamid);
         }
         
-        
-        
-        
+        if(!$deliverynum) {
+            $deliverynum = 1;
+        }
+                
+        $repeatedoptions = array();
+        $repeated = examregistrar_get_per_delivery_fields($exam->courseid, $mform, $repeatedoptions);
+        $this->repeat_elements($repeated, $deliverynum, $repeatedoptions, 
+                                'deliver_repeats', 'deliver_add_fields', 1, 
+                                get_string('adddelivery' , 'examregistrar'), false);               
         
         
         $mform->addElement('hidden', 'examsession', $session);

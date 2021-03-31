@@ -1045,4 +1045,14 @@ Para un Cuestionario se traduce en el parámetro "Límite de tiempo", esto es, l
 
 Para una Tarea establece el Plazo de entrega, entregas posteriores serán marcadas como "Retrasado". ';
 $string['adduserexceptions'] = 'Añadir excepciones de usuario';
-
+$string['takingmode'] = 'Acceso';
+$string['alttakingmodeinsession'] = '{$a} exámenes en línea';
+$string['managesessionalttaking'] = 'Exámenes en línea en la sesión';
+$string['unsynchtimeopen'] = 'Hora de inicio no coincidente.';
+$string['unsynchtimeclose'] = 'Hora de cierre no coincidente.';
+$string['unsynchtimelimit'] = 'Duración del examen no coincidente.';
+$string['passwordlocked'] = 'Examen cerrado por contraseña';
+$string['mkaccessfree'] = 'No hay control de acceso por Crear Examen';
+$string['mkaccesslocked'] = 'El control de acceso Crera Examen bloquea a todos.';
+$string['invalidquestions'] = 'No hay preguntas cargadas o son inválidas';
+$string['okstatus'] = 'Examen listo para realización';

@@ -1243,6 +1243,75 @@ class mod_examregistrar_renderer extends plugin_renderer_base {
     }
 
 
+    public function print_exam_flags2($examid, $baseurl, $flags, $taken = true) {
+        $output = '';
+        //https://localhost/moodle39ulpgc/mod/examregistrar/manage.php?id=7592&edit=exams&action=syncqz
+        //https://localhost/moodle39ulpgc/mod/examregistrar/view.php?id=7592&tab=session&session=16&venue&esort&rsort&action=examssetquestions&exam=66
+        $datesicons = '';
+        //dates 
+        if(isset($flags['timeopen']) && $flags['timeopen']) {
+            $title = get_string('unsynchtimeopen', 'examregistrar');
+            $datesicons .= html_writer::tag('i', '', array('class' => "fa fa-clock responseicon {$flags['timeopen']}",
+                                                    'title' => $title,
+                                                    'aria-label' => $title,
+                                                    ));            
+        }
+        if(isset($flags['timeclose']) && $flags['timeclose']) {
+            $title = get_string('unsynchtimeclose', 'examregistrar');
+            $datesicons .= html_writer::tag('i', '', array('class' => "fa fa-bell responseicon {$flags['timeclose']}",
+                                                    'title' => $title,
+                                                    'aria-label' => $title,
+                                                    ));            
+        }
+        if(isset($flags['timelimit']) && $flags['timelimit']) {
+            $title = get_string('unsynchtimelimit', 'examregistrar');
+            $datesicons .= html_writer::tag('i', '', array('class' => "fa fa-hourglass responseicon {$flags['timelimit']}",
+                                                    'title' => $title,
+                                                    'aria-label' => $title,
+                                                    ));            
+        }
+
+        if($datesicons) {
+            $output .= \html_writer::link($baseurl, $datesicons);
+        }
+        if(isset($flags['password']) && $flags['password']) {
+            $title = get_string('passwordlocked', 'examregistrar');
+            $output .= html_writer::tag('i', '', array('class' => "fa fa-key responseicon {$flags['password']}",
+                                                    'title' => $title,
+                                                    'aria-label' => $title,
+                                                    ));            
+        }        
+        if(isset($flags['accessfree']) && $flags['accessfree']) {
+            $title = get_string('mkaccessfree', 'examregistrar');
+            $output .= html_writer::tag('i', '', array('class' => "fa fa-universal-access responseicon danger",
+                                                    'title' => $title,
+                                                    'aria-label' => $title,
+                                                    ));            
+        }        
+        if(isset($flags['accesslocked']) && $flags['accesslocked']) {
+            $title = get_string('mkaccesslocked', 'examregistrar');
+            $output .= html_writer::tag('i', '', array('class' => "fa fa-lock responseicon danger",
+                                                    'title' => $title,
+                                                    'aria-label' => $title,
+                                                    ));            
+        }        
+        
+        
+        
+        if($flags['questions'] == 'success') {
+            $output .= $this->pix_icon('quizgreen', get_string('okstatus', 'examregistrar'), 'examregistrar', ['class' => 'icon']);
+        } elseif($taken) {
+                $output .= $this->pix_icon('quizred', get_string('invalidquestions', 'examregistrar'), 'examregistrar', ['class' => 'icon']);
+        } else {
+            $baseurl->params(['action'=>'examssetquestions', 'exam' => $examid]);
+            $icon = new pix_icon('quizred', get_string('invalidquestions', 'examregistrar'), 'examregistrar', array('class' => 'icon'));
+            $output .= $this->action_icon($url, $icon);
+        }        
+    
+        return $output;
+    }
+    
+    
     /**
      * Generate HTML table of users (num, IDnumner, name) with additional extra columns if appropiate
      *

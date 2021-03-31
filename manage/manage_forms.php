@@ -315,7 +315,7 @@ class examregistrar_exam_form extends moodleform {
         }
                 
         $repeatedoptions = array();
-        $repeated = examregistrar_get_per_delivery_fields($exam, $mform, $repeatedoptions);
+        $repeated = examregistrar_get_per_delivery_fields($exam->courseid, $mform, $repeatedoptions);
 
         
         $this->repeat_elements($repeated, $deliverynum, $repeatedoptions, 

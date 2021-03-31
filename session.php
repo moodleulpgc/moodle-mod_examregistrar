@@ -315,7 +315,7 @@ if($action == 'assignseats_venues') {
     if($examid = optional_param('exam', 0, PARAM_INT)) {
         $sessionexams = $DB->get_records('examregistrar_exams', array('id' => $examid));
     } else {
-        $sessionexams = examregistrar_get_session_exams($session, $bookedsite, $esort,  false, false);
+        $sessionexams = examregistrar_get_session_exams($session, $bookedsite, $esort,  false, false, 'quiz');
     }
 
     $num = 0;
@@ -337,7 +337,7 @@ if($action == 'assignseats_venues') {
     if($examid = optional_param('exam', 0, PARAM_INT)) {
         $sessionexams = $DB->get_records('examregistrar_exams', array('id' => $examid));
     } else {
-        $sessionexams = examregistrar_get_session_exams($session, $bookedsite, $esort,  false, false);
+        $sessionexams = examregistrar_get_session_exams($session, $bookedsite, $esort,  false, false, 'quiz');
     }
 
     $num = 0;
@@ -355,7 +355,7 @@ if($action == 'assignseats_venues') {
 
     
 } elseif(($action == 'examssetoptions')) {    
-    $sessionexams = examregistrar_get_session_exams($session, $bookedsite, $esort,  false, false);
+    $sessionexams = examregistrar_get_session_exams($session, $bookedsite, $esort,  false, false, 'quiz');
         $num = 0;
     foreach($sessionexams as $examrec) {
         if($examrec->quizplugincm && $quiz = examregistrar_exam::get_quiz_from_cmid($examrec->quizplugincm)) {
@@ -655,6 +655,7 @@ if($session) {
         echo $output->container_end();
         echo $output->container('', 'clearfix');
 
+///// collapsible region roomsinsession   
     print_collapsible_region_start('managesession', 'showhideexamregsessionrooms', get_string('managesessionrooms', 'examregistrar'),'examregsessionrooms', true, false);
 
         if($sessionrooms) {
@@ -760,11 +761,106 @@ if($session) {
 
         }
 
-
-
     print_collapsible_region_end(false);
-    echo $output->container_end();
+///// end collapsible region roomsinsession       
+    
+        $sessionexams = examregistrar_get_session_exams($session, $bookedsite, $esort,  true, true, true);
+    
+        echo $output->container_start('managesessionheader clearfix ');
+            echo $output->container(get_string('alttakingmodeinsession', 'examregistrar', count($sessionexams)),  'managesessioniteminfo');
+            
+            //// TODO generalize for all delivery modes
+            if(examregistrar_exams_have_quizzes(array_keys($sessionexams))) { 
+                $url = new moodle_url($baseurl, $baseurl->params() + array('action'=>'examssetquestions'));
+                $examsquestionslink = html_writer::link($url, get_string('assignquestions', 'examregistrar'));
+                echo $output->heading($examsquestionslink,  4, 'managesesionactionlink');
+            }            
+            
+            
+        echo $output->container_end();
+        echo $output->container('', 'clearfix');
+///// collapsible region deliveriesinsession       
+    print_collapsible_region_start('managesession', 'showhideexamregsessionalttaking', get_string('managesessionalttaking', 'examregistrar'),'examregsessionrooms', true, false);
+    
+        if($sessionexams) {
+            // form for ordering
+            $baseurl->param('rsort', $rsort);
+            $sorting = array(''=>get_string('sortprogramme', 'examregistrar'),
+                            'fullname'=>get_string('sortfullname', 'examregistrar'),
+                            'booked'=>get_string('sortbooked', 'examregistrar'),
+                            'allocated'=>get_string('sortbooked', 'examregistrar'));
+            $select = new single_select($baseurl, 'edsort', $sorting, $esort, '');
+            $select->set_label(get_string('sortby', 'examregistrar'));
+            echo $output->render($select);
+        
+            $table = new html_table();
+            $table->attributes = array('class'=>'flexible generaltable examregsessionroomstable' );
+            $tableheaders = array(get_string('exam', 'examregistrar'),
+                                    get_string('takingmode', 'examregistrar'),
+                                    get_string('allocated', 'examregistrar'),
+                                    get_string('taken', 'examregistrar'),
+                                    get_string('status'),
+                                    );
+            $table  ->head = $tableheaders;
+            $table->colclasses = array();
+            $helperurl = new moodle_url('/mod/quiz/view.php');
+            
+        
+            foreach($sessionexams as $exam) {
+                //print_object($exam);
+                if(!isset($exam->booked)) {
+                    $exam->booked = 0;
+                }
+                $exam->examregid = $examregprimaryid;
+                $exam->annuality = $examregistrar->annuality;        
+                $examclass = new examregistrar_exam($exam);
+                $examclass->examregid = $examregprimaryid;
+                $cellexam = $examclass->get_exam_name(true);
 
+                $celldelivery = '';
+                $cms = get_fast_modinfo($exam->courseid)->cms;
+                if(isset($cms[$exam->helpercmid]) && $cminfo = $cms[$exam->helpercmid]) {
+                    unset($cms);
+                    $deliveryclass = ($cminfo->uservisible) ?  ' ' : ' dimmed ';
+                    $celldelivery = \html_writer::link($cminfo->url, $output->pix_icon('icon', '', $exam->helpermod) .' '. $cminfo->name, 
+                                                    ['class' => $deliveryclass]);
+                }
+                //$celldelivery = $examclass->get_exam_deliver_helper(true, true);                
+                
+                $cellseats = "&nbsp;  {$exam->allocated} / {$exam->booked} ";
+                $seatclass = ($exam->allocated != $exam->booked) ?  ' busyalloc ' : ' freealloc ';
+                $cellseats = html_writer::span($cellseats, $seatclass);        
+        
+                $celltaken = '';
+                $cellaction = '';
+                if(isset($exam->deliveryid) && $exam->deliveryid) {
+                    list($numfinished, $numattempts) = $examclass->get_helper_taken_data();
+                    if($numfinished || $numattempts) {
+                        $celltaken = "$numfinished / $numattempts";
+                    }
+            
+                    $flags = $examclass->get_helper_flags();
+                    $cellaction = $output->print_exam_flags($exam->examid, $baseurl, $flags);
+                }
+        
+                if($cellaction) {
+                    $cellaction = html_writer::span($cellaction, 'examreviewstatusicons');
+                }
+
+                $row = new html_table_row(array($cellexam, $celldelivery, $cellseats, $celltaken, $cellaction));
+                $table->data[] = $row;
+            }
+            echo html_writer::table($table);        
+        
+        }
+    
+    print_collapsible_region_end(false);
+///// collapsible region deliveriesinsession           
+        print_object($sessionexams);    
+    
+    
+    echo $output->container_end();
+    
     echo $output->container_start('examregsessionexams clearfix ');
 
         $sessionexams = examregistrar_get_session_exams($session, $bookedsite, $esort,  true, true);
@@ -778,16 +874,11 @@ if($session) {
             echo $output->container(get_string('examsinsession', 'examregistrar', count($sessionexams)),  'managesessioniteminfo');
             echo $output->heading($examsseatslink,  4, 'managesesionactionlink');
 
-            if(examregistrar_exams_have_quizzes(array_keys($sessionexams))) { 
-                $url = new moodle_url($baseurl, $baseurl->params() + array('action'=>'examssetquestions'));
-                $examsquestionslink = html_writer::link($url, get_string('assignquestions', 'examregistrar'));
-                echo $output->heading($examsquestionslink,  4, 'managesesionactionlink');
-            }
-            
         echo $output->container_end();
         echo $output->container('', 'clearfix');
 
     print_collapsible_region_start('managesession', 'showhideexamregsessionexams', get_string('managesessionexams', 'examregistrar'),'examregsessionexams', true, false);
+
 
         if($sessionexams) {
             // form for ordering
@@ -854,7 +945,7 @@ if($session) {
                 if($exam->callnum < 0) {
                     $cellaction = html_writer::span('R'.abs($exam->callnum), 'error').' ';
                 }
-                $examclass = new examregistrar_exam($exam);
+                //$examclass = new examregistrar_exam($exam);
                 $exam->examdate = $examclass->get_examdate();
                 $message = $examclass->set_valid_file();
 
@@ -986,10 +1077,10 @@ if($session) {
 
     echo $output->container_start('examregspecialexams clearfix ');
 
-        $sessionexams = examregistrar_get_session_exams($session, $bookedsite, $esort,  true, false, true);
+        $sessionextraexams = examregistrar_get_session_exams($session, $bookedsite, $esort,  true, false, false, true);
 
         echo $output->container_start('managesessionheader clearfix ');
-        echo $output->container(get_string('specialexamsinsession', 'examregistrar', count($sessionexams)),  'managesessioniteminfo');
+        echo $output->container(get_string('specialexamsinsession', 'examregistrar', count($sessionextraexams)),  'managesessioniteminfo');
         echo $output->container_end();
         echo $output->container('', 'clearfix');
 

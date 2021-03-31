@@ -1265,10 +1265,11 @@ function examregistrar_get_course_instance($exam) {
  * @param string $sort  how to sort results, empty = shortname, others fullname/booked
  * @param bool bookingss include booking data on results
  * @param bool allocations include allocation occupancy on results
+ * @param bool withdelivery include delivery data, if a mode (quiz, assign) specified, only those are retrieved
  * @param bool $onlyspecial if true, only exams of special extra turns are returned
  * @return array rooms data
  */
-function examregistrar_get_session_exams($sessionid, $bookedsite = 0, $sort = '', $bookings = false, $allocations=false, $onlyspecial=false) {
+function examregistrar_get_session_exams($sessionid, $bookedsite = 0, $sort = '', $bookings = false, $allocations=false, $withdelivery= false, $onlyspecial=false) {
     global $DB;
 
     $params = array('examsession'=>$sessionid);
@@ -1311,17 +1312,44 @@ function examregistrar_get_session_exams($sessionid, $bookedsite = 0, $sort = ''
 
     }
 
+    $groupby = 'e.id';
+    
+    $joindelivery = '';
+    $deliveryfields = '';
+    $deliverygroup = '';
+    if($withdelivery) {    
+        $joindelivery = "JOIN {examregistrar_examdelivery} ed ON ed.examid = e.id ";
+        if(in_array($withdelivery, ['quiz','assign', 'offlinequiz'], true)) {
+            $joindelivery .=  ' AND ed.helpermod = :helpermod ';
+            $params['helpermod'] = $withdelivery; 
+        } else {
+            $joindelivery = 'LEFT '.$joindelivery;
+        }
+        $deliveryfields = 'ed.id AS deliveryid, ed.helpermod, ed.helpercmid, ed.timeopen, ed.timeclose, ed.timelimit, 
+                            ed.status, ed.parameters, ed.component, ed.bookedsite AS deliverysite, ';
+        $groupby = 'ed.id';
+        if($bookedsite) {
+            $joindelivery .= ' AND ed.bookedsite = :deliverysite ';
+            $params['deliverysite'] = $bookedsite;
+        } else {
+            $joindelivery .= ' AND ed.bookedsite > 0';
+        }
+        
+    }
+    
     $specialwhere = '';
     if($onlyspecial) {
         $specialwhere = ' AND e.callnum < 0 ';
     }
 
-    $sql = "SELECT e.id, e.programme, e.courseid, e.callnum, e.examsession, e.examscope, e.assignplugincm, e.quizplugincm,  c.shortname, c.fullname, c.idnumber $countallocated  $countbookings
+    $sql = "SELECT $deliveryfields e.id, e.id AS examid, e.programme, e.courseid, e.callnum, e.examsession, e.examscope, e.assignplugincm, e.quizplugincm,  
+                    c.shortname, c.fullname, c.idnumber $countallocated  $countbookings
             FROM {examregistrar_exams} e
             JOIN {course} c ON e.courseid = c.id
             $joinallocated
+            $joindelivery
             WHERE e.examsession = :examsession AND e.visible = 1 $specialwhere
-            GROUP BY e.id
+            GROUP BY $groupby 
             ORDER BY $order ";
 
     return $DB->get_records_sql($sql, $params);
@@ -1341,9 +1369,9 @@ function examregistrar_exams_have_quizzes($sessionexams) {
     }
     
     list($insql, $params) = $DB->get_in_or_equal($sessionexams, SQL_PARAMS_NAMED, 'eid');
-    $select = "id $insql AND quizplugincm <> 0 ";
+    $select = "id $insql AND helpermod = 'quiz' ";
     
-    return $DB->record_exists_select('examregistrar_exams', $select, $params);
+    return $DB->record_exists_select('examregistrar_examdelivery', $select, $params);
 }
 
 
@@ -2982,7 +3010,7 @@ function examregistrar_format_delivery_name($cminfo, $withmodname = false) {
     * @param $repeatedoptions reference to array of repeated options to fill
     * @return array of form fields.
     */
-function examregistrar_get_per_delivery_fields($exam, &$mform, &$repeatedoptions) {    
+function examregistrar_get_per_delivery_fields($courseid, &$mform, &$repeatedoptions) {    
     $deliveryfields = [];
 
     $helpercmidmenu = array('' => array('' => get_string('chooseaparameter', 'examregistrar')),
@@ -2992,7 +3020,7 @@ function examregistrar_get_per_delivery_fields($exam, &$mform, &$repeatedoptions
                             'assign' => array(),
                             );
     
-    $cmsinfo = (isset($exam->courseid)) ? get_fast_modinfo($exam->courseid)->cms : [];
+    $cmsinfo = (isset($courseid)) ? get_fast_modinfo($courseid)->cms : [];
     foreach($cmsinfo as $cm) {
         if(array_key_exists($cm->modname, $helpercmidmenu)) {
             $helpercmidmenu[$cm->modname][$cm->id] = examregistrar_format_delivery_name($cm);
