@@ -31,7 +31,7 @@ require_capability('mod/examregistrar:download',$context);
 
 $baseurl = new moodle_url('/mod/examregistrar/view.php', array('id'=>$cm->id,'tab'=>'printrooms'));
 $tab = 'printrooms';
-
+$output = $PAGE->get_renderer('mod_examregistrar', 'printrooms');
 /*
     Lista de sedes/aulas por examsession : menu for selecting session default = next session
 

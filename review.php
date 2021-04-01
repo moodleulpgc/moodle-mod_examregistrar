@@ -51,6 +51,8 @@ $reviewparams = array('period'=>$period,
 
 $reviewurl = new moodle_url($baseurl, $reviewparams);
 
+$output = $PAGE->get_renderer('mod_examregistrar', 'review');
+
 $annuality =  examregistrar_get_annuality($examregistrar);
 
 $canviewall = has_capability('mod/examregistrar:viewall', $context);

@@ -30,6 +30,7 @@ defined('MOODLE_INTERNAL') || die;
 require_capability('mod/examregistrar:managelocations',$context);
 
 $baseurl = new moodle_url('/mod/examregistrar/manage.php', array('id'=>$cm->id,'edit'=>$edit));
+$output = $PAGE->get_renderer('mod_examregistrar', 'printrooms');
 
 /// filter form parameters
 

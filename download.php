@@ -69,7 +69,7 @@ $PAGE->set_context($context);
 $PAGE->set_pagelayout('standard');
 $PAGE->set_activity_record($examregistrar);
 
-$output = $PAGE->get_renderer('mod_examregistrar');
+$output = $PAGE->get_renderer('mod_examregistrar', 'download');
 
 $period   = optional_param('period', '', PARAM_INT);
 $session   = optional_param('session', '', PARAM_INT);
