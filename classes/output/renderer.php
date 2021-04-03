@@ -109,6 +109,26 @@ class renderer extends \plugin_renderer_base {
     }
 
 
+    
+    /**
+     * Returns html to display a tuple of name/idnumber from an object
+     *
+     * @param stdClass $item an object or record with two properties, name & idnumber
+     * @param MoodleQuickForm $mform The user input form to display
+     * @return void
+     */
+    public function print_input_form_and_die($mform, $heading) {
+        echo $this->header();
+        echo $this->heading($heading);
+        $mform->display();
+        echo $this->footer();
+        die;    
+    }
+    
+    
+    
+    
+    
 /**
  * Returns HTML suitable for an exam booking form, with presentation and venue data.
  *
@@ -542,7 +562,7 @@ class renderer extends \plugin_renderer_base {
     }
 
 
-    public function render_examregistrar_allocatedroom22(\examregistrar_allocatedroom22 $room) {
+    public function render_examregistrar_allocatedroom(\examregistrar_allocatedroom $room) {
 
         $name = $this->formatted_itemname($item);
         $this->output->heading($roomname, 3, ' leftalign ');
@@ -550,7 +570,7 @@ class renderer extends \plugin_renderer_base {
     }
     
     
-    public function render_examregistrar_exams_course22(\examregistrar_exams_course22 $courseview) {
+    public function render_examregistrar_exams_course(\examregistrar_exams_course $courseview) {
         global $CFG, $DB;
 
         $baseurl = $courseview->url;

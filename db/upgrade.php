@@ -482,8 +482,7 @@ function xmldb_examregistrar_upgrade($oldversion) {
     }        
     
     // major change to several exam delivery methods
-    if ($oldversion < 2021032900) {        
-
+    if ($oldversion < 2021032901) {        
         // Define table examdelivery to modify.
         $table = new xmldb_table('examregistrar_examdelivery');
         $field = new xmldb_field('bookedsite', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0, 'parameters');
@@ -491,50 +490,11 @@ function xmldb_examregistrar_upgrade($oldversion) {
             $dbman->add_field($table, $field);
         }
         $key = new xmldb_key('bookedsite', XMLDB_KEY_FOREIGN, array('bookedsite'), 'examregistrar_locations', array('id'));
-        $dbman->add_key($table, $key);        
-
-        // Define table examregistrar_working_config to be created.
-        $table = new xmldb_table('examregistrar_working_config'); 
-        // Adding fields to table examregistrar_working_config.
-        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
-        $table->add_field('examregid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('name', XMLDB_TYPE_CHAR, '28', null, null, null, null);
-        $table->add_field('value', XMLDB_TYPE_TEXT, null, null, null, null, null);
-        // Adding keys to table examregistrar_working_config.
-        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
-        $table->add_key('examregid', XMLDB_KEY_FOREIGN, array('examregid'), 'examregistrar', array('id'));
-        // Adding indexes to table examregistrar_working_config.
-        $table->add_index('name', XMLDB_INDEX_NOTUNIQUE, array('name'));        
-
-        // Conditionally launch create table for examregistrar_working_config.
-        if (!$dbman->table_exists($table)) {
-            $dbman->create_table($table);
-        }        
-        
-        // now populate new table with existing data
-        if ($dbman->table_exists($table)) {
-            $select = $DB->sql_isnotempty('examregistrar', 'configdata', true, true);
-            if($examregistrars = $DB->get_records_select_menu('examregistrar', 
-                                            $select, null, '', 'id, configdata')) {
-                $record = new stdClass();
-                $record->examregid = 0;
-                $record->name = '';
-                $record->value = '';
-                foreach($examregistrars as $regid => $data) {
-                    $record->examregid = $regid; 
-                    $data = unserialize(base64_decode($data));
-                    foreach($data as $name => $value) {
-                        $record->name = $name;
-                        $record->value = $value;
-                        $DB->insert_record('examregistrar_working_config', $record);
-                    }
-                }
-            }
-        }
-        
-        // Define table deliver_config to be created.
+        $dbman->add_key($table, $key);      
+    
+        // Define table plugin_config to be created.
         $table = new xmldb_table('examregistrar_plugin_config'); 
-        // Adding fields to table deliver_config.
+        // Adding fields to table plugin_config.
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
         $table->add_field('examregid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
         $table->add_field('plugin', XMLDB_TYPE_CHAR, '28', null, null, null, null);
@@ -552,9 +512,35 @@ function xmldb_examregistrar_upgrade($oldversion) {
         // Conditionally launch create table for exam examregistrar_plugin_config.
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
-        }        
-        
-        upgrade_mod_savepoint(true, 2021032900, 'examregistrar');
+        }       
+
+        // now populate new table with existing data
+        if ($dbman->table_exists($table)) {
+            $select = $DB->sql_isnotempty('examregistrar', 'configdata', true, true);
+            if($examregistrars = $DB->get_records_select_menu('examregistrar', 
+                                            $select, null, '', 'id, configdata')) {
+                $record = new stdClass();
+                $record->examregid = 0;
+                $record->plugin = '';
+                $record->subtype = 'examregistrar';
+                $record->name = '';
+                $record->value = '';
+                foreach($examregistrars as $regid => $data) {
+                    $record->examregid = $regid; 
+                    $data = unserialize(base64_decode($data));
+                    foreach($data as $name => $value) {
+                        $record->name = $name;
+                        if(is_array($value)) {
+                            $value = implode(',', $value);
+                        }
+                        $record->value = $value;
+                        $DB->insert_record('examregistrar_plugin_config', $record);
+                    }
+                }
+            }
+        }
+    
+        upgrade_mod_savepoint(true, 2021032901, 'examregistrar');
     }      
     
     

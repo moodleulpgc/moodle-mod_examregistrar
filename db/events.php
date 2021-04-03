@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -15,19 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
- * Defines the version of examregistrar
+ * Add event handlers for the examregistrar
  *
  * @package    mod_examregistrar
- * @copyright  2013 Enrique Castro @ ULPGC
+ * @category   event
+ * @copyright  2021 Enrique castro
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2021032901;        // The current plugin version (Date: YYYYMMDDXX)
-$plugin->requires  = 2020061500;        // Requires this Moodle version
-$plugin->component = 'mod_examregistrar'; // To check on upgrade, that module sits in correct place
-$plugin->maturity = MATURITY_BETA;
-$plugin->release = '1.5';
+$observers = array(
+   
+    array(
+        'eventname' => '\mod_examregistrar\event\booking_submitted',
+        'callback' => '\mod_examregistrar\booking_observer::exam_deliver_helper_overrides',
+        'includefile' => '/mod/examregistrar/managelib.php',
+        'internal' => false,
+    ),
+    
+);

@@ -60,7 +60,7 @@ $baseurl->params(array('session'=>$session, 'venue'=>$bookedsite));
 
 // set control question, if in use and ID exists
 examregistrar_get_primaryid($examregistrar);
-$configdata = examregistrar_get_instance_configdata($examregistrar);
+$configdata = examregistrar_get_instance_config($examregistrar->id);
 $controlquestion = false;
 if($configdata->insertcontrolq && $DB->record_exists('question', array('id' => $configdata->controlquestion))) {
     $controlquestion = $configdata->controlquestion;

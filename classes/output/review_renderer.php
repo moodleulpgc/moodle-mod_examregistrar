@@ -53,7 +53,7 @@ class review_renderer extends renderer {
         $baseurl = $coursereview->url;
         $course = $coursereview->course;
         $examregistrar = $coursereview->examregistrar;
-        $config = $this->page->activityrecord->config;
+        $config = examregistrar_get_instance_config($examregistrar->id, 'approvalcutoff, printdays');
 
         $quizmodid = $DB->get_field('modules', 'id', array('name'=>'quiz'));
 
@@ -141,7 +141,7 @@ class review_renderer extends renderer {
                     $cellaction = '';
                     if($attempt->attempt) {
                         $cellstatus = $icon.'&nbsp;'.$attempt->attempt;
-                        if(warning_questions_used($attempt)) {
+                        if($exam->warning_questions_used($attempt)) {
                             $icon = $this->pix_icon('i/risk_xss', $strquestionwarning, 'moodle', array('class'=>'icon', 'title'=>$strquestionwarning));
                             $cellstatus .= '<br />'.$icon;
                         }

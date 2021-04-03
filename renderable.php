@@ -1115,8 +1115,6 @@ class examregistrar_exams_course extends examregistrar_exams_base implements ren
     }
 }
 
-
-
 class examregistrar_exam_attemptsreview implements renderable {
     /** @var int $course ID of course this exam belongs to   */
     public $courseid;
@@ -1154,6 +1152,39 @@ class examregistrar_exam_attemptsreview implements renderable {
         return $this->attempts;
     }
 
+  
+    // check exam file origin for special questions usage
+    public static function warning_questions_used($examfile) {
+        global $DB;
+
+        $validquestions = get_config('quiz_makeexam', 'validquestions');
+        if($validquestions) {
+            $validquestions = explode(',', $validquestions);
+        } else {
+            return false;
+        }
+
+        if(!$validquestions) {
+            $validquestions = array();
+        }
+
+        $warning = false;
+        if($qme_attempt = $DB->get_record('quiz_makeexam_attempts', array('examid' =>$examfile->examid, 'examfileid'=>$examfile->id, 'status'=>1))) {
+            $qids = explode(',', $qme_attempt->questions);
+            if($usedquestions = $DB->get_records_list('question', 'id', $qids, '', 'id, name, qtype')) {
+                foreach($usedquestions as $question) {
+                    if(!in_array($question->qtype, $validquestions)) {
+                        $warning = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $warning;
+    }
+        
+    
     // checks if exists approved or sent
     public function can_send() {
         $cansubmit = false;

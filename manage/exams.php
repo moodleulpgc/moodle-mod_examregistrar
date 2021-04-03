@@ -215,7 +215,9 @@ $table->set_wrapformurl($manageurl);
 $actionsmenu = array('delete' => get_string('delete'),
                      'hide' => get_string('hide'),
                      'show' => get_string('show'),
-                     'setsession' => get_string('setsession', 'examregistrar')
+                     'setsession' => get_string('setsession', 'examregistrar'),
+                     'adddeliverhelper' => get_string('adddeliverhelper', 'examregistrar'),
+                     'setdeliverdata' => get_string('setdeliverdata', 'examregistrar'),
                      );
 $table->set_actionsmenu($actionsmenu);
 $sessionmenu = examregistrar_get_referenced_namesmenu($examregistrar, 'examsessions', 'examsessionitem', $examregprimaryid, 'choose', '', array('period'=>$sel_period));

@@ -70,7 +70,6 @@ if($edit) {
 }
 
 $examregprimaryid = examregistrar_get_primaryid($examregistrar);
-$examregistrar->config = examregistrar_get_instance_configdata($examregistrar);
 
 /// Set the page header
 $PAGE->set_url($baseurl);
@@ -99,9 +98,10 @@ $canmanage = $caneditelements || $canmanageperiods || $canmanageexams || $canman
 
 require_capability('mod/examregistrar:manageseats', $context);
 
-$config = examregistrar_get_instance_configdata($examregistrar);
 
-///////////////////////////////////////////////////////////////////////////////assign_
+///////////////////////////////////////////////////////////////////////////////
+
+$config = examregistrar_get_instance_config($examregistrar->id, 'defaultrole, excludecourses, staffcats');
 $defaultrole = $DB->get_field('examregistrar_elements', 'id', array('examregid'=>$examregprimaryid, 'type'=>'roleitem', 'idnumber'=>$config->defaultrole));
 
 $session   = optional_param('session', 0, PARAM_INT);

@@ -78,7 +78,6 @@ $actionurl->param('examsession', $session);
 $courseurl = new moodle_url('/course/search.php');
 
 $examregprimaryid = examregistrar_get_primaryid($examregistrar);
-$examregistrar->config = examregistrar_get_instance_configdata($examregistrar);
 
 /// Set the page header
 $PAGE->set_url($baseurl);

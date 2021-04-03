@@ -56,7 +56,7 @@ class printexams_renderer extends renderer {
 
         $exam->set_users($venue);
 
-        $config = $this->page->activityrecord->config;
+        $config = examregistrar_get_instance_config($this->page->activityrecord->id, 'approvalcutoff, printdays');
         $now = time();
         $examdate = $exam->get_examdate();
 

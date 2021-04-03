@@ -1056,3 +1056,13 @@ $string['mkaccessfree'] = 'No hay control de acceso por Crear Examen';
 $string['mkaccesslocked'] = 'El control de acceso Crera Examen bloquea a todos.';
 $string['invalidquestions'] = 'No hay preguntas cargadas o son inválidas';
 $string['okstatus'] = 'Examen listo para realización';
+$string['deliverysite'] = 'Sede de impartición';
+$string['deliverysite_help'] = 'Una Sede asociada a exámenes online. 
+
+Es la sede donde se inscribirán los estudiantes que desean exámenes online, 
+y la sede para la gestión de esos exámenes online .';
+$string['setdeliverdata'] = 'Opciones de impartición';
+$string['adddeliverhelper'] = 'Agregar modo de impartición';
+$string['setdeliverdataitems'] = 'Las opciones de debajo se aplicarán a los exámenes: <br />{$a}';
+$string['batchnoitems'] = 'No hay ítems seleccionados para la operación en lotes.';
+$string['updateddeliverdata'] = 'Actualizadas las opciones de impartición en {$a} exámenes.';

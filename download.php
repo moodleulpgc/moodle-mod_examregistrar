@@ -60,7 +60,6 @@ $context = context_module::instance($cm->id);
 $baseurl = new moodle_url('/mod/examregistrar/view.php', array('id' => $cm->id));
 
 $examregprimaryid = examregistrar_get_primaryid($examregistrar);
-$examregistrar->config = examregistrar_get_instance_configdata($examregistrar);
 
 $PAGE->set_url($baseurl);
 $PAGE->set_title(format_string($examregistrar->name));
@@ -235,7 +234,7 @@ function examregistrar_roomallocations_printpdf($examregistrar, $allocations, $p
     $pdf->initialize_page_setup($examregistrar, 'room');
     // ---------------------------------------------------------
 
-    $config = examregistrar_get_instance_configdata($examregistrar);
+    $config = examregistrar_get_instance_config($examregistrar->id);
     $itemcount = 0;
     $totalitems = count($allocations) ;
     foreach($allocations as $room) {
@@ -271,7 +270,7 @@ function examregistrar_roomsummary_printpdf($examregistrar, $allocations, $param
     $pdf->initialize_page_setup($examregistrar, 'userlist');
     // ---------------------------------------------------------
 
-    $config = examregistrar_get_instance_configdata($examregistrar);
+    $config = examregistrar_get_instance_config($examregistrar->id);
 
     $pdf->setPrintHeader(true);
     $pdf->setPrintFooter(true);
@@ -386,7 +385,7 @@ function examregistrar_examallocations_printpdf($examregistrar, $allocations, $p
     $pdf->initialize_page_setup($examregistrar, 'exam');
     // ---------------------------------------------------------
 
-    $config = examregistrar_get_instance_configdata($examregistrar);
+    $config = examregistrar_get_instance_config($examregistrar->id);
     $itemcount = 0;
     $totalitems = count($allocations) ;
     foreach($allocations as $exam) {
@@ -533,7 +532,7 @@ function examregistrar_examallocations_binderpdf($examregistrar, $allocations, $
     $pdf->initialize_page_setup($examregistrar, 'binder');
     // ---------------------------------------------------------
 
-    $config = examregistrar_get_instance_configdata($examregistrar);
+    $config = examregistrar_get_instance_config($examregistrar->id);
     $itemcount = 0;
     $totalitems = count($allocations) ;
     foreach($allocations as $exam) {

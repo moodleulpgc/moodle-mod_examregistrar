@@ -280,7 +280,31 @@ function examregistrar_get_post_actions() {
 }
 
 
+/**
+ * Returns instanceid of primary registrar
+ *
+ * @param int $examregid ID if an instance
+ * @return int
+ */
+function examregistrar_check_primaryid($examregid) {
+    global $DB, $PAGE;
 
+    //check if this is a primary instance
+    $sql = "SELECT e1.id, e1.primaryidnumber, e1.primaryreg, e2.id AS pid
+              FROM {examregistrar} e1  
+         LEFT JOIN {examregistrar} e2 ON e2.primaryidnumber = e1.primaryreg AND e2.primaryidnumber != '' 
+             WHERE e1.id = ? 
+              ";
+    $primaryrec = $DB->get_record_sql($sql, [$examregid], MUST_EXIST);
+    
+    if(empty($primaryrec)) {
+        $link = new moodle_url('/course/view.php', array('id'=>$PAGE->course->id));
+        print_error('errornoprimary', 'examregistrar', $link);
+    }
+    
+    $primaryid = ($primaryrec->primaryidnumber) ? $primaryrec->id :  $primaryrec->pid;
+    return $primaryid;
+}
 
 /**
  * Returns instanceid of primary registrar
@@ -288,7 +312,7 @@ function examregistrar_get_post_actions() {
  * @param object $examregistrar object
  * @return int
  */
-function examregistrar_get_primaryid($examregistrar, $config = null) {
+function examregistrar_get_primaryid($examregistrar) {
     global $DB;
 
     $exregid = false;
@@ -306,46 +330,9 @@ function examregistrar_get_primaryid($examregistrar, $config = null) {
         $exreg = $examregistrar;
     }
     
-    // this is a primary examregistrar but not configured, add default data
-    if($exregid && (!isset($exreg->configdata) || !$exreg->configdata)) {
-        $config = examregistrar_clean_config($config);
-        if(!empty($config)) {
-            $DB->set_field('examregistrar', 'configdata', base64_encode(serialize($config)), array('id' =>$exreg->id));
-        }
-    }
-    
     return $exregid;
 }
 
-
-/**
- * Returns instanceid of primary registrar
- *
- * @param object $examregistrar config object
- * @return int
- */
-function examregistrar_clean_config($config = null) {
-    if(!$config) {
-        $config = get_config('examregistrar');
-        $config->staffcats = explode(',', $config->staffcats);
-    }
-    $defaults = array('selectdays', 'cutoffdays', 'extradays', 'lockdays', 'approvalcutoff', 'printdays', 
-                        'staffcats', 'excludecourses', 'venuelocationtype', 'defaultrole', 
-                        'extanswers', 'extkey', 'extresponses', 
-                        'quizexamafter', 'insertcontrolq',  'controlquestion', 'optionsintance', 'quizoptions', 
-                        'pdfwithteachers', 'pdfaddexamcopy' );
-    foreach($config as $key => $value  ) {
-        if(!in_array($key, $defaults)) {
-            unset($config->{$key});
-        }
-    }
-    
-    $fields = array_diff($defaults, array_keys(get_object_vars($config))); 
-    foreach($fields as $field) {
-        $config->{$field} = '';
-    } 
-    return $config;
-}
 
 /**
  * Returns instanceid of primary registrar

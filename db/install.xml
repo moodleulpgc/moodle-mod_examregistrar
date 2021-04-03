@@ -416,5 +416,24 @@
         <INDEX NAME="examregid-page-element" UNIQUE="true" FIELDS="examregid,page,element" COMMENT="Ensures uniqueness of pages and elements."/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="examregistrar_plugin_config" COMMENT="Config data for an instance of a examregistrar and associated plugins.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="examregid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="plugin" TYPE="char" LENGTH="28" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="subtype" TYPE="char" LENGTH="28" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="28" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="value" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The value of the config setting. Stored as text but can be interpreted by the plugin however it likes."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id" COMMENT="Unique id to identify this plugin setting value."/>
+        <KEY NAME="examregid" TYPE="foreign" FIELDS="examregid" REFTABLE="examregistrar" REFFIELDS="id" COMMENT="The examregistrar instance this config value relates to."/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="plugin" UNIQUE="false" FIELDS="plugin" COMMENT="The name of this plugin, this is the more specific name."/>
+        <INDEX NAME="subtype" UNIQUE="false" FIELDS="subtype" COMMENT="The subtype of this plugin (examregistrar or examdelivery etc.)."/>
+        <INDEX NAME="name" UNIQUE="false" FIELDS="name" COMMENT="The name of this plugin setting."/>
+      </INDEXES>
+    </TABLE>    
   </TABLES>
 </XMLDB>

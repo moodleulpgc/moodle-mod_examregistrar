@@ -25,6 +25,7 @@
 
 require_once(__DIR__.'/../../config.php');
 require_once($CFG->dirroot.'/mod/examregistrar/locallib.php');
+require_once($CFG->dirroot."/mod/examregistrar/managelib.php");
 require_once($CFG->dirroot."/mod/examregistrar/manage/manage_forms.php");
 require_once($CFG->dirroot."/mod/examregistrar/manage/manage_table.php");
 
@@ -71,7 +72,6 @@ $baseurl = new moodle_url('/mod/examregistrar/manage.php', array('id' => $cm->id
 $includefile = '';
 
 $examregprimaryid = examregistrar_get_primaryid($examregistrar);
-$examregistrar->config = examregistrar_get_instance_configdata($examregistrar);
 
 /// Set the page header
 $PAGE->set_url($baseurl);
@@ -165,16 +165,15 @@ if($upload) {
                                                                         'editidnumber' => $editidnumber,
                                                                         'encoding' => $encoding,
                                                                         'delimiter' => $delimiter ));
-        echo $output->header();
-        echo $output->heading($heading);
-        $mform->display();
-        echo $output->footer();
-        die;
+        $output->print_input_form_and_die($mform, $heading);
+
     } else if($confirm && confirm_sesskey()) {
         $data = data_submitted();
         if (isset($data->cancel) && $data->cancel) {
             redirect($baseurl);
         }
+        // TODO // TODO // TODO 
+        //examregistrar_manage_process_upload_actions($examregistrar, $baseurl, $upload, $data);        
         $message = '';
         /// process form & store element in database
         $usercontext = context_user::instance($USER->id);
@@ -187,10 +186,6 @@ if($upload) {
         $file = reset($files);
 
         $csvdata = $file->get_content();
-
-//         //print_object($csvdata);
-//         //print_object(" csvdata ON MAIN -----");
-
 
         $columns = '';
         if ($csvdata) {
@@ -288,11 +283,7 @@ if($upload) {
     /// Print the upload page header
 
     $PAGE->navbar->add($heading);
-    echo $output->header();
-    echo $output->heading($heading);
-    $mform->display();
-    echo $output->footer();
-    die;
+    $output->print_input_form_and_die($mform, $heading);    
 
 } elseif($edit == 'exams' && $action == 'syncqz') {    
     examregistrar_add_quizzes_makexamlock($examregistrar);
@@ -309,14 +300,7 @@ if($upload) {
 
     if ($formdata && confirm_sesskey() && isset($formdata->confirmed) && $formdata->confirmed) {
         /// DO generate exams
-        $data = new stdClass;
-        foreach($formdata as $key => $value) {
-            if(substr($key, 0,2) == '__') {
-                $k = substr($key, 2);
-                $data->$k = $value;
-            }
-        }
-        $message = examregistrar_generateexams_fromcourses($examregistrar, $data);
+        $message = examregistrar_generateexams_fromcourses($examregistrar, $formdata);
         if($message) {
             $delay = 5;
             redirect($baseurl, $message, $delay);
@@ -338,11 +322,7 @@ if($upload) {
         }
         /// Print the generate exams interface
         $PAGE->navbar->add($heading);
-        echo $output->header();
-        echo $output->heading($heading);
-        $mform->display();
-        echo $output->footer();
-        die;
+        $output->print_input_form_and_die($mform, $heading);        
     }
 
 } elseif($edit == 'exams' && $action == 'qc') {
@@ -373,14 +353,8 @@ if($upload) {
             $element = false;
             if($itemid > 0) {
                 // we are updating an existing element
-                if($element = $DB->get_record($itemtable, array('id' => $itemid))) {
-                    if($edit == 'exams') {
-                        if($element->callnum < 0) {
-                            $element->callnum = abs($element->callnum);
-                            $element->additional = 1;
-                        }
-                        examregistrar_exam_add_deliverymodes($element);
-                    }
+                // process editable item, for instance, exams table, delivery modes
+                if($element = examregistrar_get_editable_item($edit, $itemtable, $itemid)) {
                     $mform->set_data($element);
                 }
                 $heading = get_string('update'.$itemname, 'examregistrar');
@@ -389,46 +363,14 @@ if($upload) {
             }
 
             if ($mform->is_cancelled()) {
-                //redirect($baseurl);
-                $itemid = 0;
+
             } elseif ($formdata = $mform->get_data()) {
                 /// process form & store element in database
-                $data = examregistrar_extract_edititem_formdata($edit, $formdata);
-
-                unset($eventdata['other']['name']);
-                if($element) { // this means itemid > 0 and record exists, over-write & update
-                    $data->id = $element->id;
-                    if($success = $DB->update_record($itemtable, $data)) {
-                        $eventdata['objectid'] = $data->id;
-                        $event = \mod_examregistrar\event\manage_updated::created($eventdata, $itemtable);
-                        $event->trigger();
-                    }
-
-                } else {
-                    if($data->id = $DB->insert_record($itemtable, $data)) {
-                        $eventdata['objectid'] = $data->id;
-                        $event = \mod_examregistrar\event\manage_created::created($eventdata, $itemtable);
-                        $event->trigger();
-                    }
-                }
-                
-                if($data->id && ($edit == 'exams') && ($itemtable == 'examregistrar_exams')) {
-                    //some data edited in exams table, manage examdelivery data
-                    examregistrar_exam_addupdate_delivery_formdata($data->id, $formdata, $eventdata);
-                }
-                if($data->id && $itemtable == 'examregistrar_locations') {
-                    examregistrar_set_location_tree($data->id);
-                }
-
-                $itemid = 0;
-                //redirect($baseurl, get_string('changessaved'), $delay);
-            }
-            if($itemid) {
-                echo $output->header();
-                echo $output->heading($heading);
-                $mform->display();
-                echo $output->footer();
-                die;
+                // manage deliver modes for exams & hierarchy tree for locations 
+                examregistrar_process_addupdate_editable_item($edit, $itemtable, $examregprimaryid,
+                                                            $formdata, $element, $eventdata);
+            } else {
+                $output->print_input_form_and_die($mform, $heading);        
             }
     }
 
@@ -476,26 +418,66 @@ if($upload) {
         $DB->set_field($itemtable, 'visible', $visible, array('id'=>abs($show)));
     }
 
+    if($edit && $batch) {    
+        // TODO  // TODO  // TODO  // TODO  // TODO  // TODO  
+        //process
+    }
+    
     $items  = optional_param_array('items', array(), PARAM_INT);  // repetitive action on selected table items
+    
+    if($edit && $batch) {
+        if(!$items) {
+            \core\notification::add(get_string('batchnoitems', 'examregistrar'), 
+                                    \core\output\notification::NOTIFY_WARNING);    
+        } else {
+            $label = in_array($batch, array('show', 'hide', 'delete')) ? get_string($batch) : get_string($batch, 'examregistrar');
+            $PAGE->navbar->add($label);
+        
+            $itemsinfo = new \stdClass;
+            $itemsinfo->action = $label;
+            $itemsinfo->type = get_string($edit, 'examregistrar');
+            $list = [];
+            foreach($items as $item) {
+                list($itemsinfo->name,  $itemsinfo->idnumber) = examregistrar_get_namecodefromid($item, $edit, $itemname);
+                $list[] = $itemsinfo->name;
+            }
+            $itemsinfo->list = html_writer::alist($list);
+            unset($list);
+        }
+    }   
+    
+    if($edit && $items && 
+                (($batch == 'setdeliverdata') || ($batch == 'adddeliverhelper')){
+        $mform =  new \examregistrar_batch_setdeliverdata_form(null, 
+                        array('exreg' => $examregistrar, 'cmid'=>$cm->id, 'batch' => $batch,
+                                'items'=>$items, 'itemsinfo'=>$itemsinfo));
+        if ($mform->is_cancelled()) {
+            $batch = '';
+        } elseif ($formdata = $mform->get_data()) {        
+            if($batch == 'adddeliverhelper') {
+                // first process adding non existing delivery helpers
+                // items list is reduced in fomdata
+                examregistrar_generate_delivery_formdata($examregprimaryid, $formdata, $eventdata);
+            }
+        
+            $num = examregistrar_process_setdelivery_formdata($examregprimaryid, $formdata));
+            $batch = '';
+            $items = '';
+        } else {
+            $output->print_input_form_and_die($mform, get_string('setdeliverdata', 'examregistrar'));
+        }
+    }
+    
     if($edit && $batch && $items) {
         $batchaction = optional_param($batch, '', PARAM_ALPHANUMEXT);
         $confirm = optional_param('confirm', 0, PARAM_BOOL);
+        
         if(!$confirm) {
-            $label = in_array($batch, array('show', 'hide', 'delete')) ? get_string($batch) : get_string($batch, 'examregistrar');
-            $PAGE->navbar->add($label);
             $confirmurl = new moodle_url($baseurl, array('edit'=>$edit, 'batch' => $batch, $batch=>$batchaction, 'confirm' => 1));
             foreach($items as $item) {
                 $confirmurl->param("items[$item]", $item);
             }
-            $info = new stdClass;
-            $info->action = $label;
-            $info->type = get_string($edit, 'examregistrar');
-            foreach($items as $key => $item) {
-                list($info->name,  $info->idnumber) = examregistrar_get_namecodefromid($item, $edit, $itemname);
-                $items[$key] = $info->name;
-            }
-            $info->list = html_writer::alist($items);
-            $message = get_string('batch_confirm', 'examregistrar', $info);
+            $message = get_string('batch_confirm', 'examregistrar', $itemsinfo);
             echo $output->header();
             echo $output->confirm($message, $confirmurl, $baseurl);
             echo $output->footer();
@@ -543,7 +525,6 @@ if($upload) {
         examregistrar_rebuild_location_paths($parent);
     }
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 

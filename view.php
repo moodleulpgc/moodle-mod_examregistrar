@@ -58,7 +58,7 @@ $baseurl = new moodle_url('/mod/examregistrar/view.php', array('id'=>$cm->id,'ta
 $examregprimaryid = examregistrar_get_primaryid($examregistrar);
 $examregistrar->context = $context;
 $examregistrar->examregprimaryid = $examregprimaryid;
-$examregistrar->config = examregistrar_get_instance_configdata($examregistrar);
+
 /// Print the page header
 
 $PAGE->set_url('/mod/examregistrar/view.php', array('id' => $cm->id));

@@ -1041,9 +1041,6 @@ $string['eventmanageaction'] = 'Action executed in registrar';
 $string['eventmanage'] = 'Registrar element item {$a}';
 $string['eventmanageviewed'] = 'Registrar table/page viewed';
 $string['eventfiles'] = 'Registrar files {$a}';
-
-
-
 $string['headeruserdata'] = 'General User Attendance data';
 $string['headerroomsdata'] = 'Attendance data by room';
 $string['headerresponsefiles'] = 'Response files';
@@ -1140,3 +1137,10 @@ $string['mkaccessfree'] = 'There is no access control to exam';
 $string['mkaccesslocked'] = 'There access to exam locked for all by Make Exam';
 $string['invalidquestions'] = 'There are invalid or no questions in the exam';
 $string['okstatus'] = 'All OK';
+$string['deliverysite'] = 'Delivery site';
+$string['deliverysite_help'] = 'A Site or City to be used to book for and manage online exams.';
+$string['setdeliverdata'] = 'Set delivery options';
+$string['adddeliverhelper'] = 'Add delivery helper';
+$string['setdeliverdataitems'] = 'The options below will be applied to Exams: <br />{$a}';
+$string['batchnoitems'] = 'No items selected for batch operation';
+$string['updateddeliverdata'] = 'Updated delivery options for {$a} exams.';

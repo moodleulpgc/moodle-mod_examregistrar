@@ -122,9 +122,6 @@ i.fa.responseicon.waiting {
 }
 
 
-
-
-
 i.fa.responseicon.unconfirmed {
     color: #FF8C00;
 }
@@ -201,4 +198,8 @@ div.singlelinebutton {
 .configparams {
    float: right;
    font-weight: bold;
+}
+
+.path-mod-examregistrar  .mform input[name="add_fields_none"] {
+    display: none;
 }

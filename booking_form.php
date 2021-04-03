@@ -53,7 +53,7 @@ class examregistrar_booking_form extends moodleform {
         $capabilities = $this->_customdata['capabilities'];
         $canbookothers = $capabilities['bookothers'];
         $canmanageexams = $capabilities['manageexams'];
-        $config = examregistrar_get_instance_configdata($examreg);
+        $config = examregistrar_get_instance_config($exreg);
 
         $mform->addElement('header', 'examcourses', get_string('examcourses', 'examregistrar'));
         $mform->setExpanded('examcourses', true);

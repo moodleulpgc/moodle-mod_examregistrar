@@ -105,7 +105,7 @@ if($canbookothers = has_capability('mod/examregistrar:bookothers',$context)) {
 $annuality =  examregistrar_get_annuality($examregistrar);
 $canviewall = has_capability('mod/examregistrar:viewall', $context);
 
-$config = examregistrar_get_instance_configdata($examregistrar);
+$config = examregistrar_get_instance_config($examregistrar->id);
 $capabilities = array('bookothers'=>$canbookothers, 'manageexams'=>$canmanageexams);
 $lagdays = examregistrar_set_lagdays($examregistrar, $config, $periodobj, $capabilities);
 

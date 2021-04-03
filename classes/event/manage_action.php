@@ -48,11 +48,12 @@ class manage_action extends \core\event\base {
      * @return string
      */
     public function get_description() {
+        $action = get_string($this->other['action'], 'examregistrar');
         $extra = '';
         if(isset($this->other['extra'])) {
             $extra = 'with '.$this->other['extra'];
         }
-        return "The user with id '$this->userid' has done action '{$this->other['action']}' $extra " .
+        return "The user with id '$this->userid' has done action '$action' $extra " .
             "in activity with cm id '$this->contextinstanceid'.";
     }
 
@@ -71,7 +72,7 @@ class manage_action extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url("/mod/examregistrar/view.php", array('id' => $this->contextinstanceid, 'tab'=>$this->other['tab']));
+        return new \moodle_url("/mod/examregistrar/manage.php", array('id' => $this->contextinstanceid, 'edit'=>$this->other['edit']));
     }
 
     /**
@@ -82,8 +83,8 @@ class manage_action extends \core\event\base {
      */
     protected function validate_data() {
         parent::validate_data();
-        if (!isset($this->other['tab'])) {
-            throw new \coding_exception('Examregistrar manage needs an tab var');
+        if (!isset($this->other['examregid'])) {
+            throw new \coding_exception('The \'examregid\' value must be set in other.');
         }
     }
 }

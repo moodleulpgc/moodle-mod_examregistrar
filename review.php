@@ -179,7 +179,7 @@ if($status) {
             $examfile->status = EXAM_STATUS_APPROVED;
             $examfile->timeapproved = $now;
             $examfile->reviewerid = $USER->id;
-            if(warning_questions_used($examfile)) {
+            if(examregistrar_exam_attemptsreview::warning_questions_used($examfile)) {
                 $examfile->printmode = 1;
             }
         }
@@ -348,8 +348,7 @@ if($upload) {
                 $event = \mod_examregistrar\event\files_uploaded::create($eventdata);
                 $event->trigger();
             }
-            $config = examregistrar_get_instance_configdata($examregistrar);
-            $suffix = $config->extanswers;
+            $suffix = examregistrar_get_instance_config($examregistrar, 'extanswers');
             $filename = $examfile->idnumber.$suffix.'.pdf';
             if($mform->save_stored_file('uploadfileanswers', $examfilecontext->id, 'mod_examregistrar', 'exam', $newid, '/answers/', $filename, true)) {
                 $eventdata['other']['name'] = $filename;

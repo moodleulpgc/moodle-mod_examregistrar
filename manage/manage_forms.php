@@ -339,6 +339,64 @@ class examregistrar_exam_form extends moodleform {
     }
 }
 
+class examregistrar_batch_delivery_helper_form extends moodleform {
+
+    function definition() {
+        global $DB;
+
+        $mform =& $this->_form;
+        $items = $this->_customdata['items'];
+        $cmid = $this->_customdata['cmid'];
+        $examreg = $this->_customdata['exreg'];
+        $itemsinfo = $this->_customdata['itemsinfo'];
+        $batch = $this->_customdata['batch'];
+        
+        $exreg = examregistrar_get_primaryid($examreg);
+        
+        $mform->addElement('static', 'message', '', get_string('setdeliverdataitems', 'examregistrar', $itemsinfo->list));
+
+        if($batch == 'adddeliverhelper') {
+            $mform->addElement('hidden', 'generatedelivery', 1);
+            $helpermodmenu = array('' => get_string('chooseaparameter', 'examregistrar'),
+                                    //'examregistrar' => get_string('modulename', 'examregistrar'),
+                                    'quiz' => get_string('modulename', 'quiz'),
+                                    //'offlinequiz' => get_string('modulename', 'offlinequiz'),
+                                    'assign' => get_string('modulename', 'assign'),
+                                    );            
+            
+            $mform->addElement('select', 'helpermod', get_string('helpermod', 'examregistrar'), $helpermodmenu);
+            $mform->addHelpButton('helpermod', 'helpermod', 'examregistrar');
+            $mform->addRule('helpermod', null, 'required', null, 'client');            
+        }
+        
+        $repeatedoptions = array();
+        $repeated = examregistrar_get_per_delivery_fields('notused', $mform, $repeatedoptions, false);
+        $this->repeat_elements($repeated, 1, $repeatedoptions, 
+                                'deliver_repeats', 'add_fields_none', 0, 
+                                get_string('adddelivery', 'examregistrar'), false);   
+                                
+        foreach($items as $key => $item) {
+            $mform->addElement('hidden', "items[$key]", $item);
+            $mform->setType("items[$key]", PARAM_INT);
+        }
+        
+        $mform->addElement('hidden', 'examregid', $exreg);
+        $mform->setType('examregid', PARAM_INT);
+
+        $mform->addElement('hidden', 'batch', $batch);
+        $mform->setType('batch', PARAM_ALPHANUMEXT);
+        
+        $mform->addElement('hidden', 'edit', 'exams');
+        $mform->setType('edit', PARAM_ALPHANUMEXT);
+
+        $mform->addElement('hidden', 'id', $cmid);
+        $mform->setType('id', PARAM_INT);
+        $mform->setConstant('id', $cmid);
+        
+        $this->add_action_buttons(true, get_string('save', 'examregistrar'));
+    }
+}
+
 
 class examregistrar_location_form extends moodleform {
 

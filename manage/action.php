@@ -170,9 +170,11 @@ if($action == 'sessionrooms' || $action == 'roomstaffers') {
             $mform->set_data($element);
         }
     } elseif($action == 'configparams') {
-        $config = null;
-        $config = $DB->get_field('examregistrar', 'configdata', array('id'=>$examregprimaryid));
-        $mform->set_data(unserialize(base64_decode($config)));
+        //$config = null;
+        //$config = $DB->get_field('examregistrar', 'configdata', array('id'=>$examregprimaryid));
+        //$mform->set_data(unserialize(base64_decode($config)));
+        $config = examregistrar_get_instance_config($examregprimaryid, false, 'config_');
+        $mform->set_data($config);
     }
 
 /// process forms actions
@@ -222,6 +224,7 @@ if($action == 'sessionrooms' || $action == 'roomstaffers') {
                     }
                 }
             }
+            
         } elseif ($action == 'sessionrooms') {
             $DB->set_field('examregistrar_session_rooms', 'available', 0, array('examsession' => $formdata->examsession, 'bookedsite'=>$formdata->bookedsite));
             $record = new stdClass;
@@ -231,11 +234,13 @@ if($action == 'sessionrooms' || $action == 'roomstaffers') {
             foreach($formdata->assignedrooms as $roomid) {
                 examregistrar_addupdate_sessionroom($formdata->examsession, $roomid, $formdata->bookedsite);
             }
+            
         } elseif($action == 'stafffromexam') {
            $examsessions = optional_param_array('examsessions', 0, PARAM_INT);
            $remove = optional_param('remove', false, PARAM_BOOL);
            $role = optional_param('role', 0, PARAM_ALPHANUMEXT);
            $message = examregistrar_assignroomstaff_fromexam($examsessions, $bookedsite, $role, $remove);
+           
         } elseif($action == 'seatstudent') {
             $room = optional_param('room', '', PARAM_INT);
             $userid = optional_param('userid', '', PARAM_INT);
@@ -243,12 +248,10 @@ if($action == 'sessionrooms' || $action == 'roomstaffers') {
                 $DB->set_field('examregistrar_session_seats', 'roomid', $room, array('examsession'=>$session, 'bookedsite'=>$bookedsite, 'userid'=>$userid));
                 examregistrar_update_additional_allocations($session, $bookedsite, $userid, $room);
             }
+            
         } elseif($action == 'configparams') {
-            $config = clone $formdata;
-            $config = examregistrar_clean_config($config);
-            if(!empty($config)) {
-                $DB->set_field('examregistrar', 'configdata', base64_encode(serialize($config)), array('id' =>$examregprimaryid));
-            }
+            examregistrar_save_instance_config($examregprimaryid, $formdata, false, 'config_');
+            
         } elseif($action == 'addextracall' || $action == 'addextrasessioncall') {
             $examid = $formdata->exam;
             $deliveryexams = [];
