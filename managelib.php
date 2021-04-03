@@ -1504,55 +1504,6 @@ function examregistrar_rebuild_location_paths($parent) {
 }
 
 
-/**
- * Searches Locations for children of a venue (and venue itself) with given type & seats
- *
- * @param int/object $venue the ID for room in Locations table or full record
- * @param int $type the locationtype for the desired rooms
- * @param int $seats minimum number of setas in the returned locations
- * @param int $returnids whether returning full objects of just IDs
- * @return array locations
- */
-function examregistrar_get_venue_locations($venue, $type = '', $seats = -1, $returnids=false) {
-    global $DB;
-
-    if(!$venue) {
-        return false;
-    }
-
-    if(is_numeric($venue)) {
-        $path = $DB->get_field('examregistrar_locations', 'path', array('id'=>$venue));
-        $venueid = $venue;
-    } else {
-        $path = $venue->path;
-        $venueid = $venue->id;
-    }
-
-    $likepath = $DB->sql_like('path', ':path');
-    $params['path'] = $path.'/%';
-    $params['venue'] = $venueid;
-    $select = " (id = :venue  OR $likepath ) ";
-
-    if($seats) {
-        $select .= ' AND seats >= :seats ';
-        $params['seats'] = $seats;
-    } else {
-        $select .= ' AND seats = 0 ';
-    }
-
-    if($type) {
-        $select .= ' AND locationtype = :type ';
-        $params['type'] = $type;
-    }
-
-    $return = '';
-    if($returnids) {
-        return $DB->get_records_select_menu('examregistrar_locations', $select, $params, '', 'id, id AS ids');
-    }
-    return $DB->get_records_select('examregistrar_locations', $select, $params);
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////
 // Generate && Synchonize exams management                                    //
 ////////////////////////////////////////////////////////////////////////////////

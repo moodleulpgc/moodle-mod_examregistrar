@@ -10,37 +10,10 @@
 
 require_once($CFG->libdir.'/formslib.php');
 
-
-function examregistrar_set_lagdays($examregistrar, $config, $period, $capabilities) {
-    if(!$period OR 
-        (isset($capabilities['bookothers']) && $capabilities['bookothers']) OR
-        (isset($capabilities['manageexams']) && $capabilities['manageexams'])) {
-
-        return 0;
-    }
-
-    $lagdays = max($examregistrar->lagdays, $config->cutoffdays);
-    $lagdays = ($period->calls > 1) ? $lagdays + $config->extradays : $lagdays;
-    return $lagdays;
-}
-
-
-function examregistrar_check_exam_in_past($now, $lagdays, $examdate) {
-    $timelimit = strtotime("-$lagdays days ",  $examdate);
-    return ($now > $timelimit);
-}
-
-
-function examregistrar_check_exam__within_period($now, $period, $examdate, $config) {
-    $examstart = strtotime("-{$config->selectdays} days ",  $examdate);
-    return !(($now < max($period->timestart, $examstart)) OR ($now > $period->timeend));
-}
-
-
 class examregistrar_booking_form extends moodleform {
 
     function definition() {
-        global $EXAMREGISTRAR_ELEMENTTYPES, $DB, $OUTPUT;
+        global $DB, $OUTPUT;
 
         $mform =& $this->_form;
         $cmid = $this->_customdata['cmid'];
@@ -164,16 +137,12 @@ class examregistrar_booking_form extends moodleform {
                 // freeze because if last exam date is in the past, cannot be overcome by capabilities: no sense to book in the past
                 $freeze = true;
             }
-            if(!examregistrar_check_exam__within_period($now, $period, $examdate, $config)
+            if(!examregistrar_check_exam_within_period($now, $period, $examdate, $config)
                 && !$canmanageexams) {
                 $freeze = true;
             }
-            $sql = "SELECT gi.courseid
-                        FROM {grade_items} gi
-                        LEFT JOIN {grade_grades} gg ON gi.id = gg.itemid AND gg.userid = :user
-                        WHERE gi.courseid = :courseid AND gi.itemtype = 'course' AND (gg.finalgrade >= gi.gradepass) ";
             $passmsg = '';
-            if($passed = $DB->get_records_sql($sql, array('courseid'=>$booking->course->id, 'user'=>$params['user']))) {
+            if($passed = examregistrar_check_course_passedgrade($booking->course->id, $params['user'])) {
                 //$freeze = true;
                 //$passmsg = get_string('noexam_4', 'examregistrar');
             }

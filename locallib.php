@@ -1578,7 +1578,53 @@ function examregistrar_booking_seating_qc($sessionid, $bookedsite = 0, $sort='')
     return $DB->get_records_sql($sql, $params);
 }
 
+/**
+ * Searches Locations for children of a venue (and venue itself) with given type & seats
+ *
+ * @param int/object $venue the ID for room in Locations table or full record
+ * @param int $type the locationtype for the desired rooms
+ * @param int $seats minimum number of setas in the returned locations
+ * @param int $returnids whether returning full objects of just IDs
+ * @return array locations
+ */
+function examregistrar_get_venue_locations($venue, $type = '', $seats = -1, $returnids=false) {
+    global $DB;
 
+    if(!$venue) {
+        return false;
+    }
+
+    if(is_numeric($venue)) {
+        $path = $DB->get_field('examregistrar_locations', 'path', array('id'=>$venue));
+        $venueid = $venue;
+    } else {
+        $path = $venue->path;
+        $venueid = $venue->id;
+    }
+
+    $likepath = $DB->sql_like('path', ':path');
+    $params['path'] = $path.'/%';
+    $params['venue'] = $venueid;
+    $select = " (id = :venue  OR $likepath ) ";
+
+    if($seats) {
+        $select .= ' AND seats >= :seats ';
+        $params['seats'] = $seats;
+    } else {
+        $select .= ' AND seats = 0 ';
+    }
+
+    if($type) {
+        $select .= ' AND locationtype = :type ';
+        $params['type'] = $type;
+    }
+
+    $return = '';
+    if($returnids) {
+        return $DB->get_records_select_menu('examregistrar_locations', $select, $params, '', 'id, id AS ids');
+    }
+    return $DB->get_records_select('examregistrar_locations', $select, $params);
+}
 
 /**
  * Checks if venue has only one room
@@ -3683,116 +3729,4 @@ function examregistrar_get_user_courses($examregistrar, $course, $searchparams, 
     }
 
     return $courses;
-}
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Classes
-////////////////////////////////////////////////////////////////////////////////
-
-
-
-/**
- * class used by user selection controls
- * @package mod_examregistrar
- * @copyright 2012 Enrique Castro
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
- class examregistrar_user_selector extends \user_selector_base {
-
-    /**
-     * The id of the examregistrar this selector is being used for
-     * @var int
-     */
-    protected $examregid = null;
-    /**
-     * The context of the forum this selector is being used for
-     * @var object
-     */
-    protected $context = null;
-    /**
-     * The id of the current group
-     * @var int
-     */
-    protected $currentgroup = null;
-
-    /**
-     * Constructor method
-     * @param string $name
-     * @param array $options
-     */
-    public function __construct($name, $options) {
-        $options['accesscontext'] = $options['context'];
-        parent::__construct($name, $options);
-        if (isset($options['context'])) {
-            $this->context = $options['context'];
-        }
-        if (isset($options['currentgroup'])) {
-            $this->currentgroup = $options['currentgroup'];
-        }
-        if (isset($options['examgregid'])) {
-            $this->examregid = $options['examgregid'];
-        }
-    }
-
-    /**
-     * Returns an array of options to seralise and store for searches
-     *
-     * @return array
-     */
-    protected function get_options() {
-        global $CFG;
-        $options = parent::get_options();
-        $options['file'] =  substr(__FILE__, strlen($CFG->dirroot.'/'));
-        $options['context'] = $this->context;
-        $options['currentgroup'] = $this->currentgroup;
-        $options['examgregid'] = $this->examregid;
-        return $options;
-    }
-
-    /**
-     * Finds all potential users
-     *
-     * Potential users are determined by checking for users with a capability
-     * determined in {@see forum_get_potential_subscribers()}
-     *
-     * @param string $search
-     * @return array
-     */
-    public function find_users($search) {
-        global $DB;
-
-        // only active enrolled users or everybody on the frontpage
-        list($esql, $params) = get_enrolled_sql($this->context, 'mod/examregistrar:book', $this->currentgroup, true);
-        $fields = get_all_user_name_fields(true, 'u');
-        $sql = "SELECT u.id, u.username, u.idnumber, u.email, $fields
-                FROM {user} u
-                JOIN ($esql) je ON je.id = u.id
-                ORDER BY u.lastname ASC, u.firstname ASC ";
-
-        $availableusers = $DB->get_records_sql($sql, $params);
-
-
-        //$availableusers = forum_get_potential_subscribers($this->context, $this->currentgroup, $this->required_fields_sql('u'), 'u.firstname ASC, u.lastname ASC');
-
-        if (empty($availableusers)) {
-            $availableusers = array();
-        } else if ($search) {
-            $search = strtolower($search);
-            foreach ($availableusers as $key=>$user) {
-                if (stripos($user->firstname, $search) === false && stripos($user->lastname, $search) === false && stripos($user->idnumber, $search) === false && stripos($user->username, $search) === false ) {
-                    unset($availableusers[$key]);
-                }
-            }
-        }
-
-        if ($search) {
-            $groupname = get_string('potentialusersmatching', 'examregistrar', $search);
-        } else {
-            $groupname = get_string('potentialusers', 'examregistrar');
-        }
-        return array($groupname => $availableusers);
-    }
-
 }
