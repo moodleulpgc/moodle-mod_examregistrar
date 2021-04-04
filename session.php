@@ -27,6 +27,7 @@
 require_once(__DIR__.'/../../config.php');
 require_once($CFG->dirroot.'/mod/examregistrar/locallib.php');
 */
+require_once($CFG->dirroot.'/mod/examregistrar/managelib.php');
 require_once($CFG->dirroot."/mod/examregistrar/manage/manage_forms.php");
 require_once($CFG->dirroot."/mod/examregistrar/manage/manage_table.php");
 
@@ -353,6 +354,20 @@ if($action == 'assignseats_venues') {
         \core\notification::add(get_string('examsquestionscleared', 'examregistrar', $num), \core\output\notification::NOTIFY_SUCCESS);
     }
 
+} elseif(($action == 'updatequizzes') || 
+            ($action == 'removequizpass') || 
+            ($action == 'mklockquizzes') ) {
+    $options = ['session' => $session];
+    if($examid = optional_param('exam', 0, PARAM_INT)) {
+        $options['examid'] = $examid;;
+    }
+    if($action == 'updatequizzes') {
+        examregistrar_update_exam_quizzes($examregistrar, $options);
+    } elseif($action == 'removequizpass') {
+        examregistrar_exam_quizzes_remove_password($examregistrar, $options);
+    } elseif($action == 'mklockquizzes') {
+        examregistrar_exam_quizzes_mklock($examregistrar, $options);
+    }
     
 } elseif(($action == 'examssetoptions')) {    
     $sessionexams = examregistrar_get_session_exams($session, $bookedsite, $esort,  false, false, 'quiz');
@@ -398,6 +413,7 @@ if($action == 'assignseats_venues') {
     $editurl = new moodle_url('/mod/examregistrar/manage.php', $params);
     $actionurl = new moodle_url('/mod/examregistrar/manage/action.php', $params);
 
+/// Control panel & links header
     echo $output->session_control_panel_links($baseurl, $editurl, $actionurl);
    
 /// Session & venue selector

@@ -25,6 +25,7 @@
 
 require_once('../../../config.php');
 require_once($CFG->dirroot.'/mod/examregistrar/locallib.php');
+require_once($CFG->dirroot."/mod/examregistrar/managelib.php");
 require_once($CFG->dirroot."/mod/examregistrar/manage/action_forms.php");
 //require_once($CFG->dirroot."/mod/examregistrar/manage/manage_forms.php");
 //require_once($CFG->dirroot."/mod/examregistrar/manage/manage_table.php");
@@ -450,6 +451,7 @@ if($action == 'sessionrooms' || $action == 'roomstaffers') {
                         $eventdata['context'] = $context;
                         $eventdata['other'] = array();
                         $eventdata['other']['edit'] = 'exams';
+                    // is valid the delivery mode & bookedite??   
                     $deliveryexams = examregistrar_exam_addupdate_delivery_formdata($extraexamid, $exam->courseid, $formdata, $eventdata);
                 }
                 /// now book student for new exam call

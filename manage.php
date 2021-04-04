@@ -447,7 +447,7 @@ if($upload) {
     }   
     
     if($edit && $items && 
-                (($batch == 'setdeliverdata') || ($batch == 'adddeliverhelper')){
+                (($batch == 'setdeliverdata') || ($batch == 'adddeliverhelper'))) {
         $mform =  new \examregistrar_batch_setdeliverdata_form(null, 
                         array('exreg' => $examregistrar, 'cmid'=>$cm->id, 'batch' => $batch,
                                 'items'=>$items, 'itemsinfo'=>$itemsinfo));
@@ -460,7 +460,7 @@ if($upload) {
                 examregistrar_generate_delivery_formdata($examregprimaryid, $formdata, $eventdata);
             }
         
-            $num = examregistrar_process_setdelivery_formdata($examregprimaryid, $formdata));
+            $num = examregistrar_process_setdelivery_formdata($examregprimaryid, $formdata);
             $batch = '';
             $items = '';
         } else {

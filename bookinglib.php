@@ -46,16 +46,89 @@ function examregistrar_set_lagdays($examregistrar, $config, $period, $capabiliti
 }
 
 
-function examregistrar_check_exam_in_past($now, $lagdays, $examdate) {
+function examregistrar_check_exam_in_past1($now, $lagdays, $examdate) {
     $timelimit = strtotime("-$lagdays days ",  $examdate);
     return ($now > $timelimit);
 }
 
 
-function examregistrar_check_exam_within_period($now, $period, $examdate, $config) {
-    $examstart = strtotime("-{$config->selectdays} days ",  $examdate);
+function examregistrar_check_exam_in_past($now, $lagdays, $exam, $lastminute = false) {
+    global $DB;
+    
+    if(!isset($exam->examdate)) {
+        $exam->examdate = $DB->get_field('examregistrar_examsessions', 'examdate', 
+                                        array('id'=>$exam->examsession, 
+                                                'examregid'=>$exam->examregid, 
+                                                'period'=>$exam->period));    
+    }
+
+    if(!$lastminute) {
+       $examdate = usergetmidnight($exam->examdate);
+    } else {
+        // we can book to last minute, we need real exam starting hour
+        if($deliveryhelpers = $DB->get_records_menu('examregistrar_examdelivery', 
+                                                    ['examid' => $exam->id],
+                                                    'timeopen ASC', 'id, timeopen', 0, 1)) { 
+            $examdate = reset($deliveryhelpers);
+        } else {
+            // use session starting hour
+            $timeslot = $DB->get_field('examregistrar_examsessions', 'timeslot', 
+                                        array('id'=>$exam->examsession, 
+                                                'examregid'=>$exam->examregid, 
+                                                'period'=>$exam->period));    
+            $examdate = $exam->examdate + 3600 * $timeslot;
+        }
+    }
+    
+    $timelimit = strtotime("-$lagdays days ",  $examdate);
+    return ($now > $timelimit);
+}
+
+
+function examregistrar_check_exam_within_period($now, $period, $selectdays, $exam) {
+    global $DB;
+    
+    if(!isset($exam->examdate)) {
+        $exam->examdate = $DB->get_field('examregistrar_examsessions', 'examdate', 
+                                        array('id'=>$exam->examsession, 
+                                                'examregid'=>$exam->examregid, 
+                                                'period'=>$exam->period));    
+    }
+    $examdate = usergetmidnight($exam->examdate);
+
+    $examstart = strtotime("-{$selectdays} days ",  $examdate);
     return !(($now < max($period->timestart, $examstart)) OR ($now > $period->timeend));
 }
+
+
+function examregistrar_booking_need_freeze($booking, $now, $lagdays, $nofreeze = false) {
+    global $DB;
+    
+    if($nofreeze) {
+        return false;
+    }
+
+    $freeze = false;
+    $bookedsession = 0;
+    // determine booked session and exam date from examsession
+    if($booking->numcalls > 1) {
+        foreach($booking->exams as $exam) {
+            $examdate = usergetmidnight($exam->examdate);
+            if($booking->examid && $booking->booked && $booking->examid == $exam->id) {
+                $bookedsession = $exam->examsession;
+            }
+        }
+        // test if needing freezing
+        if($booking->examid && $booking->booked  && $bookedsession) {
+            $examdate = usergetmidnight($DB->get_field('examregistrar_examsessions', 'examdate', array('id'=>$bookedsession)));
+            $timelimit = strtotime("-$lagdays days ",  $examdate);
+            if($now > $timelimit) {
+                $freeze = true;
+            }
+        }
+    }    
+    return $freeze;
+}     
 
 
 function examregistrar_check_course_passedgrade($courseid, $userid) {

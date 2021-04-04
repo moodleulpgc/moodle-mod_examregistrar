@@ -94,11 +94,17 @@ class session_renderer extends renderer {
 
         $url = new moodle_url($baseurl, array('action'=>'examssetquestions'));
         $text[] = html_writer::link(clone $url, get_string('assignquestions', 'examregistrar'));
+        /*
         $url->param('action', 'examsdelquestions');
         $text[] = html_writer::link(clone $url, get_string('examsdelquestions', 'examregistrar'));
+        */
         $url->param('action', 'examssetoptions');
         $text[] = html_writer::link(clone $url, get_string('examssetoptions', 'examregistrar'));
-        
+        $url->param('action', 'updateqzdates');
+        $text[] = html_writer::link($url, get_string('updatequizzes', 'examregistrar'));        
+        $url->param('action', 'removequizpass');
+        $text[] = html_writer::link(clone $url, get_string('removequizpass', 'examregistrar'));
+
         $output .= implode(',&nbsp;&nbsp;',$text).'<br />';
 
         $output .= html_writer::nonempty_tag('span', get_string('printingoptions', 'examregistrar').': ' , array('class'=>'examregistrarmanageheaders'));
@@ -253,6 +259,8 @@ class session_renderer extends renderer {
     public function build_session_rooms_table(array $sessionrooms, $baseurl, 
                                                 $esort, $rsort,
                                                 $session, $bookedsite, $candownload)  {
+        global $DB;
+        
         $output = '';    
     
         if(empty($sessionrooms)) {
@@ -433,6 +441,8 @@ class session_renderer extends renderer {
     
     public function build_session_exams_table(array $sessionexams, $baseurl, $actionurl, 
                                                 $esort, $rsort, $session, $bookedsite)  {
+        global $DB;
+                                                
         $output = '';    
     
         if(empty($sessionexams)) {
@@ -568,7 +578,7 @@ class session_renderer extends renderer {
         return $output;       
     }
     
-    public function print_exam_flags($examid, $baseurl, $flags, $taken = true) {
+    public function print_exam_flags($examid, $url, $flags, $taken = true) {
         $output = '';
         //https://localhost/moodle39ulpgc/mod/examregistrar/manage.php?id=7592&edit=exams&action=syncqz
         //https://localhost/moodle39ulpgc/mod/examregistrar/view.php?id=7592&tab=session&session=16&venue&esort&rsort&action=examssetquestions&exam=66
@@ -576,61 +586,73 @@ class session_renderer extends renderer {
         //dates 
         if(isset($flags['timeopen']) && $flags['timeopen']) {
             $title = get_string('unsynchtimeopen', 'examregistrar');
-            $datesicons .= html_writer::tag('i', '', array('class' => "fa fa-clock responseicon {$flags['timeopen']}",
+            $datesicons .= html_writer::tag('i', ' ', array('class' => "fa fa-clock responseicon text-{$flags['timeopen']}",
                                                     'title' => $title,
                                                     'aria-label' => $title,
                                                     ));            
         }
         if(isset($flags['timeclose']) && $flags['timeclose']) {
             $title = get_string('unsynchtimeclose', 'examregistrar');
-            $datesicons .= html_writer::tag('i', '', array('class' => "fa fa-bell responseicon {$flags['timeclose']}",
+            $datesicons .= html_writer::tag('i', ' ', array('class' => "fa fa-bell responseicon text-{$flags['timeclose']}",
                                                     'title' => $title,
                                                     'aria-label' => $title,
                                                     ));            
         }
         if(isset($flags['timelimit']) && $flags['timelimit']) {
             $title = get_string('unsynchtimelimit', 'examregistrar');
-            $datesicons .= html_writer::tag('i', '', array('class' => "fa fa-hourglass responseicon {$flags['timelimit']}",
+            $datesicons .= html_writer::tag('i', ' ', array('class' => "fa fa-hourglass responseicon text-{$flags['timelimit']}",
                                                     'title' => $title,
                                                     'aria-label' => $title,
                                                     ));            
         }
 
+        $url->param('exam', $examid);
         if($datesicons) {
-            $output .= \html_writer::link($baseurl, $datesicons);
+            $url->param('action', 'updatequizzes');
+            $output .= \html_writer::link($url, $datesicons);
         }
+        
         if(isset($flags['password']) && $flags['password']) {
+            $url->param('action', 'removequizpass');
             $title = get_string('passwordlocked', 'examregistrar');
-            $output .= html_writer::tag('i', '', array('class' => "fa fa-key responseicon {$flags['password']}",
+            $flag = html_writer::tag('i', '&nbsp; ', array('class' => "fa fa-key responseicon text-{$flags['password']}",
                                                     'title' => $title,
                                                     'aria-label' => $title,
-                                                    ));            
+                                                    ));
+            $output .= html_writer::link($url, $flag);
         }        
+        
+        $accessicons = '';
         if(isset($flags['accessfree']) && $flags['accessfree']) {
             $title = get_string('mkaccessfree', 'examregistrar');
-            $output .= html_writer::tag('i', '', array('class' => "fa fa-universal-access responseicon danger",
+            $accessicons .= html_writer::tag('i', '&nbsp ', array('class' => "fa fa-universal-access responseicon text-danger",
                                                     'title' => $title,
                                                     'aria-label' => $title,
                                                     ));            
         }        
         if(isset($flags['accesslocked']) && $flags['accesslocked']) {
             $title = get_string('mkaccesslocked', 'examregistrar');
-            $output .= html_writer::tag('i', '', array('class' => "fa fa-lock responseicon danger",
+            $accessicons .= html_writer::tag('i', '&nbsp ', array('class' => "fa fa-lock responseicon text-danger",
                                                     'title' => $title,
                                                     'aria-label' => $title,
                                                     ));            
         }        
         
+        if($accessicons) {
+            $url->param('action', 'mklockquizzes');
+            $output .= \html_writer::link($url, $accessicons);        
+        }
+        
+        $url->param('action', 'examssetquestions');
         if($flags['questions'] == 'success') {
             $output .= $this->pix_icon('quizgreen', get_string('okstatus', 'examregistrar'), 'examregistrar', ['class' => 'icon']);
         } elseif($taken) {
                 $output .= $this->pix_icon('quizred', get_string('invalidquestions', 'examregistrar'), 'examregistrar', ['class' => 'icon']);
         } else {
-            $baseurl->params(['action'=>'examssetquestions', 'exam' => $examid]);
             $icon = new pix_icon('quizred', get_string('invalidquestions', 'examregistrar'), 'examregistrar', array('class' => 'icon'));
             $output .= $this->action_icon($url, $icon);
         }        
-    
+                
         return $output;
     }
 

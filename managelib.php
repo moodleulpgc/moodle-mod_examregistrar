@@ -178,7 +178,7 @@ function examregistrar_format_delivery_name($cminfo, $withmodname = false) {
     * @param $repeatedoptions reference to array of repeated options to fill
     * @return array of form fields.
     */
-function examregistrar_get_per_delivery_fields($courseid, &$mform, &$repeatedoptions, $withhelper = true) {    
+function examregistrar_get_per_delivery_fields($courseid, &$mform, &$repeatedoptions, $withhelper = true, $bookedsite = 0) {    
     $deliveryfields = [];
 
     if($withhelper) {
@@ -215,6 +215,10 @@ function examregistrar_get_per_delivery_fields($courseid, &$mform, &$repeatedopt
         //$repeatedoptions['helpermod']['helpbutton'] = array('helpermod', 'examregistrar');        
         
         $deliveryfields[] = $mform->createElement('selectgroups', 'helpercmid', get_string('helpercmid', 'examregistrar'), $helpercmidmenu);
+        if($bookedsite) {
+            $repeatedoptions['helpercmid']['disabledif'] = array('bookedsite', 'neq', $bookedsite);  
+        }
+        
         $repeatedoptions['helpercmid']['helpbutton'] = array('helpercmid', 'examregistrar');        
     }
     
@@ -386,7 +390,12 @@ function examregistrar_generate_delivery_formdata($examregprimaryid, &$formdata,
         }
         unset($data);
     }
-    
+ 
+    if($added) {
+        \core\notification::add(get_string('addeddeliveryhelper', 'examregistrar', count($added)), 
+                            \core\output\notification::NOTIFY_SUCCESS);    
+    }
+ 
     // remove added from formdata list
     $formdata->items = array_diff($formdata->items, $added);
 }
@@ -464,7 +473,8 @@ function examregistrar_pack_delivery_parameters($formdata, $index) {
 
 
 /**
- * Performs updating of examdelivery table
+ * Performs updating of examdelivery table 
+ *   and updates helpermod instances  (both time settings and makeexamlock for quizzes, for instance)
  *
  * @param int $examid 
  * @param object $formdata data submitted in an item-editing form
@@ -478,11 +488,12 @@ function examregistrar_exam_addupdate_delivery_formdata($examid, $formdata, $eve
     $deliverymods = [];
     
     foreach(range(0, $formdata->deliver_repeats - 1) as $index) {
-    
-    
-    
-        if($formdata->helpercmid[$index] || $formdata->deliveryid[$index]) {
+        if(isset($formdata->helpercmid[$index]) && ($formdata->helpercmid[$index] || $formdata->deliveryid[$index])) {
             $cminfo = get_fast_modinfo($formdata->courseid)->cms[$formdata->helpercmid[$index]];
+            if(empty($cminfo)) {
+                continue; // do not add if module do not exists
+            }
+            
             $delivery = new stdClass();
             $delivery->examid = $examid;
             $delivery->helpermod = $cminfo->modname;
@@ -545,36 +556,101 @@ function examregistrar_exam_addupdate_delivery_formdata($examid, $formdata, $eve
             }
         }
         
-        // now manipulate helper mod
-        $helpermod = $DB->get_record($delivery->helpermod, array('id' => $delivery->instanceid), '*', MUST_EXIST);
-        $delivery->instance = $helpermod;
-        
-        $helpermod->coursemodule = $delivery->helpercmid;
-        if($delivery->helpermod == 'assign') {
-            assign_update_instance($helpermod, null);
-        }
-
-        if($delivery->helpermod == 'quiz') {
-            $helpermod->instance = $delivery->instanceid;
-            $helpermod->quizpassword = $helpermod->password;
-            $accesssettings = quiz_access_manager::load_settings($delivery->instanceid);
-            foreach ($accesssettings as $name => $value) {
-                $helpermod->$name = $value;
-            }            
-            $helpermod->makeexamlock = $delivery->examid;            
-            if(isset($helpermod->questionsperpage)) {
-                $helpermod->repaginatenow = 1;
-            } 
-            quiz_update_instance($helpermod, null);
-        }
-        
-        if($delivery->helpermod == 'offlinequiz') {
-            offlinequiz_update_instance($helpermod);
-        }
+        // now manipulate and update helper mod
+        examregistrar_delivery_update_helper_instance($delivery, $formdata->courseid);
     }
     
     return $deliveryexams;
 }
+
+
+
+/**
+ *  //This is done with class polymorfirsm when delivery plugins
+ *
+ * @param delivery $delivery record from examdelivery table 
+ *
+ * @return 
+ */
+function examregistrar_delivery_update_helper_instance($delivery, $courseid = 0) {
+    global $CFG, $DB;
+
+    // ensure we have a module instanceid
+    if(!isset($delivery->instanceid) || !$delivery->instanceid) {
+        if(!$courseid) {
+            $courseid = $DB->get_field('examregistrar_exams', 'courseid', ['id' => $delivery->examid]);
+        }
+    
+        $cminfo = get_fast_modinfo($courseid)->cms[$delivery->helpercmid];
+        if(empty($cminfo)) {
+            return false;
+        }
+        $delivery->instanceid = $cminfo->instance;    
+    }
+
+    $modinstance = $DB->get_record($delivery->helpermod, ['id' => $delivery->instanceid]);
+    
+    if(empty($modinstance)) {
+        return false;
+    }
+    
+    $modinstance->coursemodule = $delivery->helpercmid;
+    $modinstance->instance = $delivery->instanceid;
+
+    if(!empty($delivery->parameters)) {
+        $parameters = unserialize($delivery->parameters);
+        foreach($parameters as $param => $value) {
+            $modinstance->$param = $value;
+        }
+    }
+    
+    include_once($CFG->dirroot . '/mod/' . $delivery->helpermod . '/lib.php');
+    if($delivery->helpermod == 'quiz') {
+        include_once($CFG->dirroot . '/mod/quiz/accessmanager.php');    
+    }
+    
+    // TODO  // TODO  // TODO  // TODO  
+    //This is done with class polymorfirsm when delivery plugins
+    
+    if($delivery->helpermod == 'assign') {
+    
+        $modinstance->allowsubmissionsfromdate  = $delivery->timeopen;
+        // this ensures always  cutoff > duedate
+        $cutoff = $delivery->timeopen + $delivery->timelimit;
+        $modinstance->duedate = min($delivery->timeclose, $cutoff);
+        $modinstance->cutoffdate = max($delivery->timeclose, $cutoff);
+    
+        assign_update_instance($modinstance, null);
+    }
+
+    if($delivery->helpermod == 'quiz') {
+        $modinstance->quizpassword = $modinstance->password;
+        $accesssettings = quiz_access_manager::load_settings($delivery->instanceid);
+        foreach ($accesssettings as $name => $value) {
+            $modinstance->$name = $value;
+        }            
+        
+        $modinstance->timeopen = $delivery->timeopen;
+        $modinstance->timeclose = $delivery->timeclose;
+        $modinstance->timelimit = $delivery->timelimit;
+        $modinstance->makeexamlock = $delivery->examid;    
+        
+        if(isset($modinstance->questionsperpage)) {
+            $modinstance->repaginatenow = 1;
+        } 
+        quiz_update_instance($modinstance, null);
+    }
+    
+    if($delivery->helpermod == 'offlinequiz') {
+        $modinstance->time = $delivery->timeopen;
+        
+        offlinequiz_update_instance($modinstance);
+    }
+    
+    return true;
+}
+
+
 
 /**
  * 
@@ -1792,7 +1868,8 @@ function examregistrar_add_quizzes_makexamlock($examregistrar, $options = null) 
         return;
     }
 
-    $prefix = get_config('examregistrar', 'quizexamprefix');
+    $exregid = examregistrar_check_primaryid($examregistrar->id);
+    $prefix = examregistrar_get_instance_config($examregid, 'quizexamprefix');
     
     $params = array('mod'=>'quiz', 'idnumber' => $prefix.'%');   
     $extrawhere = '';
@@ -1816,7 +1893,6 @@ function examregistrar_add_quizzes_makexamlock($examregistrar, $options = null) 
  
     $quizzes = $DB->get_recordset_sql($sql, $params);
     
-    $exregid = examregistrar_get_primaryid($examregistrar);
     $record = new stdClass();
     $record->makeexamlock = 0;
     $num = 0;
@@ -1855,14 +1931,14 @@ function examregistrar_add_quizzes_makexamlock($examregistrar, $options = null) 
  * @param array $options generating settings array with courseid or quizid fields
  */
 function examregistrar_synch_exam_quizzes($examregistrar, $options = null) {
-    global $DB;
+    global $DB, $USER;
 
     
     if(!get_config('quizaccess_makeexamlock', 'enabled')) {
         return;
     }
     
-    $exregid = examregistrar_get_primaryid($examregistrar);
+    $exregid = examregistrar_check_primaryid($examregistrar->id);
     $params = array('examregid'=> $exregid, 'mod' => 'quiz');  
     $extrawhere = '';
     if(isset($options['courseid']) && $options['courseid']) {
@@ -1874,19 +1950,63 @@ function examregistrar_synch_exam_quizzes($examregistrar, $options = null) {
         $params['quizid'] = $options['quizid'];
     }    
     
-    $sql = "SELECT e.id, cm.id AS quizplugincm
+    $sql = "SELECT e.id, cm.id AS quizplugincm. q.timeopen, q.timeclose, q.timelimit, 
+                    d.id AS deliveryid, d.helpercmid, d.bookedsite   
             FROM {examregistrar_exams} e 
             JOIN {quizaccess_makeexamlock} mk ON mk.makeexamlock = e.id
             JOIN {course_modules} cm ON cm.course = e.courseid AND cm.instance = mk.quizid
-            JOIN {modules} md ON cm.module = md.id AND md.name = :mod             
+            JOIN {modules} md ON cm.module = md.id AND md.name = :mod
+            JOIN {quiz} q ON q.id = cm.instance
+       LEFT JOIN {examregistrar_examdelivery} d ON e.i = d.examid AND d.helpermod = md.name
             WHERE e.quizplugincm = 0 AND e.examregid = :examregid $extrawhere";
 
     $exams = $DB->get_recordset_sql($sql, $params);
     
+    $delivery = new \stdClass();
+    $delivery->helpermod = 'quiz';
+    $delivery->component = 'synch_exam_quizzes';
+    $delivery->modifierid = $USER->id;
+    $delivery->bookedsite = examregistrar_get_instance_config($exregid, 'deliverysite');
+    
+    $num = 0;
+    $deliverynum = 0;
+    $errors = [];
     foreach($exams as $exam) {
         $DB->update_record('examregistrar_exams', $exam, true);
+        $num++;
+        
+        if(!$exam->deliveryid) {
+            //there is no helper yet, add one
+            $delivery->examid = $exam->id;
+            $delivery->helpercmid = $exam->quizplugincm;
+            $delivery->timeopen = $exam->timeopen;
+            $delivery->timeclose = $exam->timeclose;
+            $delivery->timelimit = $exam->timelimit;
+            if($DB->insert_record('examregistrar_examdelivery', $delivery)) {
+                $deliverynum++;
+            }
+        } else {
+            if($exam->helpercmid != $exam->quizplugincm) {
+                $errors[] = $exam->quizplugincm;
+            } elseif($exam->bookedsite != $delivery->bookedsite) {
+                $DB->set_field('examregistrar_examdelivery', 'bookedsite', $delivery->bookedsite, 
+                                ['id' => $exam->deliveryid]);
+            }
+        }
     }
     $exams->close();
+
+    $type = $num ? \core\output\notification::NOTIFY_SUCCESS : \core\output\notification::NOTIFY_WARNING;
+    \core\notification::add(get_string('addedquizexamcm', 'examregistrar', $num), $type);    
+    
+    $type = $deliverynum ? \core\output\notification::NOTIFY_SUCCESS : \core\output\notification::NOTIFY_WARNING;
+    \core\notification::add(get_string('addeddeliveryhelper', 'examregistrar', $deliverynum), $type);    
+    
+    if($errors) {
+        \core\notification::add(get_string('wrongquizcmhelper', 'examregistrar', implode(', ', $errors)),
+            \core\output\notification::NOTIFY_ERROR);    
+    }
+    
 }
 
 
@@ -1899,7 +2019,7 @@ function examregistrar_synch_exam_quizzes($examregistrar, $options = null) {
 function examregistrar_update_exam_quizzes($examregistrar, $options = null) {
     global $DB;
 
-    $exregid = examregistrar_get_primaryid($examregistrar);
+    $exregid = examregistrar_check_primaryid($examregistrar->id);
     $params = array('examregid'=> $exregid);  
     
     $extrawhere = '';
@@ -1907,11 +2027,45 @@ function examregistrar_update_exam_quizzes($examregistrar, $options = null) {
         $extrawhere .= ' AND e.courseid = :courseid ';
         $params['courseid'] = $options['courseid'];
     }
+    
+    if(isset($options['session']) && $options['session']) {
+        $extrawhere .= ' AND e.examsession = :session ';
+        $params['session'] = $options['session'];
+    }
+    
+    if(isset($options['examid']) && $options['examid']) {
+        $extrawhere .= ' AND e.id = :examid ';
+        $params['examid'] = $options['examid'];
+    }
+    
+    /* not used
     if(isset($options['quizid']) && $options['quizid']) {
         $extrawhere .= ' AND q.id = :quizid ';
         $params['quizid'] = $options['quizid'];
     }
+    */   
     
+    $sql = "SELECT d.*, e.courseid
+              FROM {examregistrar_examdelivery} d
+              JOIN {examregistrar_exams} e ON e.id = d.examid 
+             WHERE e.examregid = :examregid AND d.helpermod = 'quiz' AND d.helpercmid > 0 $extrawhere ";
+              
+    $examdeliveries =  $DB->get_recordset_sql($sql, $params);
+    
+    include_once($CFG->dirroot . '/mod/quiz/lib.php');
+    include_once($CFG->dirroot . '/mod/quiz/accessmanager.php');    
+
+    $num = 0;
+    foreach($examdeliveries as $delivery) {
+        if(examregistrar_delivery_update_helper_instance($delivery, $delivery->courseid)) {
+            $num++;
+        }
+    }
+    $examdeliveries->close();    
+    
+    /// NOT USED  ANYMORE WITH DELIVERY  /// NOT USED  ANYMORE WITH DELIVERY 
+    
+/*    
     $sql = "SELECT e.id, q.id AS qid, cm.id AS cmid, s.examdate, s.duration, s.timeslot
             FROM {examregistrar_exams} e 
             JOIN {examregistrar_examsessions} s ON s.id = e.examsession
@@ -1966,7 +2120,119 @@ function examregistrar_update_exam_quizzes($examregistrar, $options = null) {
         }
     }
     $exams->close();
+    */
     
     $type = $num ? \core\output\notification::NOTIFY_SUCCESS : \core\output\notification::NOTIFY_WARNING;
     \core\notification::add(get_string('updatedquizdates', 'examregistrar', $num), $type);
+}
+
+
+/**
+ * Update data in Quizzes associated with exams in the registrar
+ *
+ * @param object $examregistrar object
+ * @param array $options generating settings array with courseid or quizid fields
+ */
+function examregistrar_exam_quizzes_mklock($examregistrar, $options = null) {
+    global $CFG, $DB;
+
+    $exregid = examregistrar_check_primaryid($examregistrar->id);
+    $params = array('examregid'=> $exregid);  
+    
+    $extrawhere = '';
+    if(isset($options['courseid']) && $options['courseid']) {
+        $extrawhere .= ' AND e.courseid = :courseid ';
+        $params['courseid'] = $options['courseid'];
+    }
+    
+    if(isset($options['session']) && $options['session']) {
+        $extrawhere .= ' AND e.examsession = :session ';
+        $params['session'] = $options['session'];
+    }
+    
+    if(isset($options['examid']) && $options['examid']) {
+        $extrawhere .= ' AND e.id = :examid ';
+        $params['examid'] = $options['examid'];
+    }
+
+    $sql = "SELECT d.id, d.examid, cm.instance, d.helpercmid 
+              FROM {examregistrar_examdelivery} d
+              JOIN {examregistrar_exams} e ON e.id = d.examid 
+              JOIN {modules} m ON m.name LIKE d.helpermod              
+              JOIN {course_modules} cm ON cm.id = d.helpercmid AND cm.course = e.courseid AND cm.module = m.id
+             WHERE e.examregid = :examregid AND d.helpermod = 'quiz' AND d.helpercmid > 0 $extrawhere ";
+              
+    $cms =  $DB->get_records_sql($sql, $params);
+    
+    include_once($CFG->dirroot . '/mod/quiz/lib.php');
+    include_once($CFG->dirroot . '/mod/quiz/accessmanager.php');    
+
+    $num = 0;
+    foreach($cms as $delivery) {
+        if($modinstance = $DB->get_record('quiz', ['id' => $delivery->instance])) {
+            $modinstance->instance = $delivery->instance;
+            $modinstance->coursemodule = $delivery->helpercmid;
+            $modinstance->quizpassword = $modinstance->password;
+            $accesssettings = quiz_access_manager::load_settings($delivery->instance);
+            foreach ($accesssettings as $name => $value) {
+                $modinstance->$name = $value;
+            }            
+            
+            $modinstance->makeexamlock = $delivery->examid;    
+            if(quiz_update_instance($modinstance, null)) {
+                $num++;
+            }
+        }
+    }
+    
+    $type = $num ? \core\output\notification::NOTIFY_SUCCESS : \core\output\notification::NOTIFY_WARNING;
+    \core\notification::add(get_string('updatedquizmklock', 'examregistrar', $num), $type);
+}
+
+
+/**
+ * Update data in Quizzes associated with exams in the registrar
+ *
+ * @param object $examregistrar object
+ * @param array $options generating settings array with courseid or quizid fields
+ */
+function examregistrar_exam_quizzes_remove_password($examregistrar, $options = null) {
+    global $DB;
+
+    $exregid = examregistrar_check_primaryid($examregistrar->id);
+    $params = array('examregid'=> $exregid);  
+    
+    $extrawhere = '';
+    if(isset($options['courseid']) && $options['courseid']) {
+        $extrawhere .= ' AND e.courseid = :courseid ';
+        $params['courseid'] = $options['courseid'];
+    }
+    
+    if(isset($options['session']) && $options['session']) {
+        $extrawhere .= ' AND e.examsession = :session ';
+        $params['session'] = $options['session'];
+    }
+    
+    if(isset($options['examid']) && $options['examid']) {
+        $extrawhere .= ' AND e.id = :examid ';
+        $params['examid'] = $options['examid'];
+    }
+    
+    $sql = "SELECT d.id, cm.instance
+              FROM {examregistrar_examdelivery} d
+              JOIN {examregistrar_exams} e ON e.id = d.examid 
+              JOIN {modules} m ON m.name LIKE d.helpermod              
+              JOIN {course_modules} cm ON cm.id = d.helpercmid AND cm.course = e.courseid AND cm.module = m.id
+             WHERE e.examregid = :examregid AND d.helpermod = 'quiz' AND d.helpercmid > 0 $extrawhere ";
+              
+    $cms =  $DB->get_records_sql_menu($sql, $params);
+
+    if(!empty($cms)) {
+        list($insql, $params) = $DB->get_in_or_equal($cms); 
+        $DB->set_field_select('quiz', 'password', '', "id $insql ", $params);
+    }
+    $num = count($cms);
+    $type = $num ? \core\output\notification::NOTIFY_SUCCESS : \core\output\notification::NOTIFY_WARNING;
+    \core\notification::add(get_string('updatedquizpasswords', 'examregistrar', $num), $type);
+    
 }

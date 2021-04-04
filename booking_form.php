@@ -72,6 +72,9 @@ class examregistrar_booking_form extends moodleform {
             // first check if need freeze in multiple calls: booked an exam in the past, any of the set
             // softfreeze means it can be relieved by manageexams capability: to book in available exams in the set scheduled in the future (if any)
             // only applicable to sets of multiple calls. If sibgle call, freezing is controled by the proper examdate
+            $softfreeze = examregistrar_booking_need_freeze($booking, $now, $lagdays, 
+                                                            ($canbookothers || $canmanageexams));
+/*                                                            
             $softfreeze = false;
             $bookedsession = 0;
             // determine booked session and exam date from examsession
@@ -91,15 +94,17 @@ class examregistrar_booking_form extends moodleform {
                     }
                 }
             }
-
+*/
             $examids = array();
+            // $booking->exams is sorted by examdate ASC. Last $exam is later on time
             foreach($booking->exams as $exam) {
                 if($exam->visible) {
                     $visible = true;
                 }
-                $examdate = usergetmidnight($exam->examdate);
+                //$examdate = usergetmidnight($exam->examdate);
                 $disabled = '';
-                if((($now > strtotime("-$lagdays days",  $examdate)) || ($softfreeze && !$canbookothers)) && $booking->numcalls > 1) {
+                if(($booking->numcalls > 1) && ( $softfreeze ||
+                        examregistrar_check_exam_in_past($now, $lagdays, $exam, $canmanageexams))) {
                     $disabled = array('disabled'=>'disabled');
                 }
                 $star = '';
@@ -122,22 +127,13 @@ class examregistrar_booking_form extends moodleform {
                 $examids[] = $exam->id;
             }
 
-                /*
-            $timelimit = strtotime("-$lagdays days ",  $examdate);
-            $examstart = strtotime("-{$config->selectdays} days ",  $examdate);
-            if($now > $timelimit) {
+            // $exam is now the last exam in time, guaranteed by sorting of $booking->exams 
+
+            if(examregistrar_check_exam_in_past($now, $lagdays, $exam, $canmanageexams)) {
                 // freeze because if last exam date is in the past, cannot be overcome by capabilities: no sense to book in the past
                 $freeze = true;
             }
-            if((($now < max($period->timestart, $examstart)) OR ($now > $period->timeend))
-                    && !$canmanageexams) {
-                $freeze = true;
-            }*/
-            if(examregistrar_check_exam_in_past($now, $lagdays, $examdate)) {
-                // freeze because if last exam date is in the past, cannot be overcome by capabilities: no sense to book in the past
-                $freeze = true;
-            }
-            if(!examregistrar_check_exam_within_period($now, $period, $examdate, $config)
+            if(!examregistrar_check_exam_within_period($now, $period, $config->selectdays, $exam)
                 && !$canmanageexams) {
                 $freeze = true;
             }
@@ -186,7 +182,7 @@ class examregistrar_booking_form extends moodleform {
             $mform->setType("booking[$index][shortname]", PARAM_INT);
 
             $mform->disabledIf("booking[$index][booked]", "booking[$index][bookedsite]", 'eq', '');
-            if($freeze || ($softfreeze && !$canbookothers)) {
+            if($freeze || $softfreeze) {
                 $mform->disabledIf("booking[$index][booked]", "booking[$index][numcalls]", 'neq', 0);
                 $mform->disabledIf("booking[$index][bookedsite]", "booking[$index][numcalls]", 'neq', 0);
             }
