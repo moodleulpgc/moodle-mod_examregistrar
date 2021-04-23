@@ -448,9 +448,20 @@ if($upload) {
     
     if($edit && $items && 
                 (($batch == 'setdeliverdata') || ($batch == 'adddeliverhelper'))) {
-        $mform =  new \examregistrar_batch_setdeliverdata_form(null, 
+        
+        $mform =  new \examregistrar_batch_delivery_helper_form(null,
                         array('exreg' => $examregistrar, 'cmid'=>$cm->id, 'batch' => $batch,
                                 'items'=>$items, 'itemsinfo'=>$itemsinfo));
+        if($sid = optional_param('setsession', 0, PARAM_INT)) {
+            $session = $DB->get_record('examregistrar_examsessions', ['id' => $sid], 'examdate, duration, timeslot');
+            $after = examregistrar_get_instance_config($examregprimaryid, 'quizexamafter');
+            $rec = new \stdClass();
+            $rec->timeopen[0] = $session->examdate + $session->timeslot*3600;
+            $rec->timeclose[0] = $rec->timeopen[0] + $session->duration + $after;
+            $rec->timelimit[0] = $session->duration;
+            $mform->set_data($rec);    
+        }                        
+                                
         if ($mform->is_cancelled()) {
             $batch = '';
         } elseif ($formdata = $mform->get_data()) {        
@@ -460,7 +471,7 @@ if($upload) {
                 examregistrar_generate_delivery_formdata($examregprimaryid, $formdata, $eventdata);
             }
         
-            $num = examregistrar_process_setdelivery_formdata($examregprimaryid, $formdata);
+            $num = examregistrar_process_setdelivery_formdata($examregprimaryid, $formdata, $eventdata);
             $batch = '';
             $items = '';
         } else {

@@ -128,7 +128,7 @@ class examregistrar_exam implements renderable {
         $params = array('annuality', 'courseid', 'programme', 'shortname', 'fullname', 
                         'period', 'callnum', 'examscope', 'examsession', 'visible', 
                         'assignplugincm', 'quizplugincm', 'deliveryid', 'helpermod', 
-                        'helpercmid', 'timeopen', 'timeclose', 'timelimit');
+                        'helpercmid', 'timeopen', 'timeclose', 'timelimit', 'deliverysite');
         foreach($params as $param) {
             if(isset($exam->$param)) {
                 $this->$param = $exam->$param;
@@ -314,6 +314,8 @@ class examregistrar_exam implements renderable {
             }
         }
         
+        $this->taken = $numattempts;
+        
         return [$numfinished, $numattempts];
     }
     
@@ -326,22 +328,51 @@ class examregistrar_exam implements renderable {
         global $DB;
         
         $instance = $this->get_helpermod_instance();
+        $instances = [$instance];
         $flags = [];
         
         $isextracall = ($this->callnum < 0);
         
-        // dates (example is for quiz module)
-        if($instance->timeopen != $this->timeopen) {
-            $flags['timeopen'] = $isextracall ?  'warning' : 'danger';
+        if($isextracall) {
+            // Is an extra call, nominal dates are irrelevant, 
+            // we must check for user overrides 
+            // TODO // TODO make polymorphic dependeing on helper mode
+            $sql = "SELECT o.id AS oid, o.quiz AS id, 
+                            o.timeopen, o.timeclose, o.timelimit, 
+                            o.password, o.attempts  
+                      FROM {quiz_overrides} o 
+                      JOIN {examregistrar_bookings} b ON b.userid = o.userid AND b.examid = :examid AND b.booked = 1 AND b.bookedsite = :deliverysite
+                     WHERE o.quiz = :instanceid  ";
+            $params = ['instanceid' => $instance->id, 'examid' => $this->examid, 'deliverysite' => $this->deliverysite];
+            
+            $instances = $DB->get_records_sql($sql, $params);
+        
+            if(empty($instances)) { 
+                $instances = [$instance];
+                $flags['extranobook'] = 'warning';
+            }
         }
-        if($instance->timeclose != $this->timeclose) {
-            $flags['timeclose'] = $isextracall ?  'warning' : 'danger';
-        }
-        if($instance->timelimit != $this->timelimit) {
-            $flags['timelimit'] = $isextracall ?  'warning' : 'danger';
-        }
-        if($instance->password) {
-            $flags['password'] = $isextracall ?  'warning' : 'danger';
+        
+        foreach($instances as $instance) {
+            // dates (example is for quiz module)
+            if($instance->timeopen != $this->timeopen) {
+                $flags['timeopen'] = $isextracall ?  'warning' : 'danger';
+                if(usergetmidnight($instance->timeopen) !=  usergetmidnight($this->timeopen)) {
+                    $flags['datetime'] = $isextracall ?  'warning' : 'danger';
+                }
+            }
+            if($instance->timeclose != $this->timeclose) {
+                $flags['timeclose'] = $isextracall ?  'warning' : 'danger';
+                if(usergetmidnight($instance->timeclose) !=  usergetmidnight($this->timeclose)) {
+                    $flags['datetime'] = $isextracall ?  'warning' : 'danger';
+                }
+            }
+            if($instance->timelimit != $this->timelimit) {
+                $flags['timelimit'] = $isextracall ?  'warning' : 'danger';
+            }
+            if($instance->password) {
+                $flags['password'] = $isextracall ?  'warning' : 'danger';
+            }
         }
 
         // makexamlock 

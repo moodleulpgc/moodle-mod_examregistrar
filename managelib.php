@@ -160,13 +160,16 @@ function examregistrar_process_addupdate_editable_item($edit, $itemtable, $prima
     }    
 }
 
-function examregistrar_format_delivery_name($cminfo, $withmodname = false) {    
-    $name = $cminfo->name; 
+function examregistrar_format_delivery_name($cminfo, $withicon = false) {    
+    global $OUTPUT;
+    
+    $name = \html_writer::link($cminfo->url, $cminfo->name); 
+    
+    if($withicon) {
+        $name = $OUTPUT->pix_icon('icon', '', $cminfo->modname).$name;
+    }
     if($cminfo->idnumber) {
         $name .= ' ('.$cminfo->idnumber.')';
-    }
-    if($withmodname) {
-        $name .= ' '.\html_writer::span('['. get_string('modulename', $cminfo->modname) .']', 'reduced');
     }
 
     return $name;
@@ -650,8 +653,6 @@ function examregistrar_delivery_update_helper_instance($delivery, $courseid = 0)
     return true;
 }
 
-
-
 /**
  * 
  *
@@ -677,7 +678,18 @@ function examregistrar_exam_delivery_instances($exam, $manageurl, $withdate = fa
         
         $date = '';
         if($withdate) {
-            $date = $delivery->timeopen ? \html_writer::div(userdate($delivery->timeopen, get_string('strftimedaydate')), ' reduced '): '';
+            $timeformat = get_string('strftimedaydatetime');
+            if($delivery->timeopen && (usergetmidnight($delivery->timeopen) ==  usergetmidnight($exam->examdate))) {
+                $timeformat = get_string('strftimetime24', 'langconfig');
+            }
+            
+            if($delivery->timeopen) {
+                $date = userdate($delivery->timeopen, $timeformat);
+                if($delivery->timelimit) {
+                    $date .= '; '.format_time($delivery->timelimit);
+                }
+                $date = \html_writer::div($date, ' reduced ');
+            }
         }
         $deliveryinstances[$delivery->id] =  \html_writer::span($name. $date, 'deliveryitem');
     }
@@ -1806,7 +1818,7 @@ function examregistrar_generateexams_fromcourses($examregistrar, $formdata) {
 function examregistrar_decode_examquiz_idnumber($exregid, $courseid, $idnumber, $checkexamid = 0) {
     global $DB;
     
-    $prefix = get_config('examregistrar', 'quizexamprefix');
+    $prefix = examregistrar_get_instance_config($examregid, 'quizexamprefix');
     // remove prefix & extrachars
     $idnumber = trim(str_replace($prefix, '', $idnumber), "_- \t\n\r\0\x0B"); 
     

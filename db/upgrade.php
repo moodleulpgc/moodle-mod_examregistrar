@@ -32,7 +32,7 @@ defined('MOODLE_INTERNAL') || die();
  * @return bool
  */
 function xmldb_examregistrar_upgrade($oldversion) {
-    global $DB;
+    global $DB, $USER;
 
     $dbman = $DB->get_manager(); // loads ddl manager and xmldb classes
 
@@ -378,120 +378,7 @@ function xmldb_examregistrar_upgrade($oldversion) {
     }    
 
     // major change to several exam delivery methods
-    if ($oldversion < 2021021500) {    
-        
-        // Define table examdelivery to be created.
-        $table = new xmldb_table('examregistrar_examdelivery');
-        // Adding fields to table session responses.
-        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
-        $table->add_field('examid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        //$table->add_field('examfileid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);        
-        $table->add_field('helpermod', XMLDB_TYPE_CHAR, '20', null, null, null, null);
-        $table->add_field('helpercmid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
-        $table->add_field('timeopen', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
-        $table->add_field('timeclose', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
-        $table->add_field('timelimit', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
-        $table->add_field('status', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, 0);
-        $table->add_field('parameters', XMLDB_TYPE_TEXT, null, null, null, null, null);
-        $table->add_field('component', XMLDB_TYPE_CHAR, '100', null, null, null, null);
-        $table->add_field('modifierid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
-        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
-       
-        // Adding keys to table session responses.
-        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
-        $table->add_key('examid', XMLDB_KEY_FOREIGN, array('examid'), 'examregistrar_exams', array('id'));
-        $table->add_key('helpercmid', XMLDB_KEY_FOREIGN, array('helpercmid'), 'course_modules', array('id'));
-        //$table->add_key('examfileid', XMLDB_KEY_FOREIGN, array('examfileid'), 'examregistrar_examfile', array('id'));
-
-        // Adding indexes to table session responses.
-        $table->add_index('status', XMLDB_INDEX_NOTUNIQUE, array('status'));
-
-        // Conditionally launch create table for exam student response files.
-        if (!$dbman->table_exists($table)) {
-            $dbman->create_table($table);
-        }
-    
-        // Define field deliveryid to be added to responses table.
-        $table = new xmldb_table('examregistrar_responses');
-        $field = new xmldb_field('deliveryid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'examid');
-
-        // Conditionally launch add field deliveryid.
-        if (!$dbman->field_exists($table, $field)) {
-            $dbman->add_field($table, $field);
-        }
-    
-        // field deliveryid to be added to session_seats table.
-        $table = new xmldb_table('examregistrar_session_seats');
-
-        // Conditionally launch add field deliveryid.
-        if (!$dbman->field_exists($table, $field)) {
-            $dbman->add_field($table, $field);
-        }
-    
-    
-    
-        // Populate new table from exams table 
-        $now = time();
-        $sql = "SELECT e.id AS examid, e.assignplugincm, e.quizplugincm, e.component, e.modifierid, e.timemodified,
-                        ef.id AS examfileid, ef.taken
-                  FROM {examregistrar_exams} e  
-             LEFT JOIN {examregistrar_examfiles} ef ON ef.examid = e.id AND ef.status = :status
-                 WHERE  (e.assignplugincm <> 0 OR e.quizplugincm <> 0) AND e.visible = 1";
-        if($exams = $DB->get_records_sql($sql, array('status' => EXAM_STATUS_APPROVED))) {
-            foreach($exams as $exam) {
-                if(!isset($exam->examfileid)) {
-                    $exam->examfileid = 0;
-                }
-                $exam->status = 0;
-                if($exam->assignplugincm > 0) {
-                    $exam->helpermod = 'assign';
-                    $exam->helpercmid = $exam->assignplugincm;
-                    $assign = $DB->get_record('assign', array('id' => $DB->get_field('course_modules', 'instance', array('id' => $exam->assignplugincm))));
-                    $exam->timeopen = $assign->allowsubmissionsfromdate;
-                    $exam->timeclose = $assign->duedate;
-                    $exam->timelimit = $assign->duedate - $assign->allowsubmissionsfromdate;
-                    $DB->insert_record('examregistrar_examdelivery', $exam);
-                }  
-                if($exam->quizplugincm > 0) {
-                    $quiz = $DB->get_record('quiz', array('id' => $DB->get_field('course_modules', 'instance', array('id' => $exam->quizplugincm))));
-                    $exam->helpermod = 'quiz';
-                    $exam->helpercmid = $exam->quizplugincm;
-                    $exam->timeopen = $quiz->timeopen;
-                    $exam->timeclose = $quiz->timeclose;
-                    $exam->timelimit = $quiz->timelimit;
-                    $DB->insert_record('examregistrar_examdelivery', $exam);
-                }  
-            }
-        }
-    
-        // Define field deliveryid to be added to responses table.
-        $table = new xmldb_table('examregistrar_exams');
-        $field = new xmldb_field('assignplugincm', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
-        // Conditionally launch drop field assignplugincm.
-        if ($dbman->field_exists($table, $field)) {
-            //$dbman->drop_field($table, $field);
-        }    
-        
-        $field = new xmldb_field('quizplugincm', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
-        // Conditionally launch drop field quizplugincm.
-        if ($dbman->field_exists($table, $field)) {
-            //$dbman->drop_field($table, $field);
-        }    
-
-        upgrade_mod_savepoint(true, 2021021500, 'examregistrar');
-    }        
-    
-    // major change to several exam delivery methods
-    if ($oldversion < 2021032901) {        
-        // Define table examdelivery to modify.
-        $table = new xmldb_table('examregistrar_examdelivery');
-        $field = new xmldb_field('bookedsite', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0, 'parameters');
-        if (!$dbman->field_exists($table, $field)) {
-            $dbman->add_field($table, $field);
-        }
-        $key = new xmldb_key('bookedsite', XMLDB_KEY_FOREIGN, array('bookedsite'), 'examregistrar_locations', array('id'));
-        $dbman->add_key($table, $key);      
-    
+    if ($oldversion < 2021021501) {
         // Define table plugin_config to be created.
         $table = new xmldb_table('examregistrar_plugin_config'); 
         // Adding fields to table plugin_config.
@@ -519,7 +406,7 @@ function xmldb_examregistrar_upgrade($oldversion) {
             $select = $DB->sql_isnotempty('examregistrar', 'configdata', true, true);
             if($examregistrars = $DB->get_records_select_menu('examregistrar', 
                                             $select, null, '', 'id, configdata')) {
-                $record = new stdClass();
+                $record = new \stdClass();
                 $record->examregid = 0;
                 $record->plugin = '';
                 $record->subtype = 'examregistrar';
@@ -534,15 +421,197 @@ function xmldb_examregistrar_upgrade($oldversion) {
                             $value = implode(',', $value);
                         }
                         $record->value = $value;
-                        $DB->insert_record('examregistrar_plugin_config', $record);
+                        $params = ['examregid' => $regid, 'plugin' => '', 
+                                    'subtype' => 'examregistrar', 'name' => $record->name];
+                        if($DB->record_exists('examregistrar_plugin_config', $params)) {
+                            $DB->set_field('examregistrar_plugin_config', 'value', $record->value, $params);
+                        } else {
+                            $DB->insert_record('examregistrar_plugin_config', $record);
+                        }
                     }
                 }
             }
         }
     
-        upgrade_mod_savepoint(true, 2021032901, 'examregistrar');
+        upgrade_mod_savepoint(true, 2021021501, 'examregistrar');
     }      
     
+    // ensure a deliverysite is defined, if existing
+    if ($oldversion < 2021021502) {
+    
+        $sql = "SELECT l.id, l.examregid
+                FROM {examregistrar_locations} l 
+                JOIN {examregistrar_elements} e ON e.id = l.location AND l.examregid = e.examregid
+                WHERE e.type = 'locationitem' AND e.idnumber = 'online' ";
+        $sites = $DB->get_records_sql_menu($sql, null);
+        
+        $record = new stdClass();
+        $record->examregid = 0;
+        $record->plugin = '';
+        $record->subtype = 'examregistrar';
+        $record->name = 'deliverysite';
+        $record->value = '';                        
+        foreach($sites as $site => $exregid) {
+            $params = ['examregid' => $exregid, 'plugin' => '', 
+                        'subtype' => 'examregistrar', 'name' => 'deliverysite'];
+            if($DB->record_exists('examregistrar_plugin_config', $params)) {
+                $DB->set_field('examregistrar_plugin_config', 'value', $site, $params);
+            } else {
+                $record->value = $site;
+                $DB->insert_record('examregistrar_plugin_config', $record);
+            }
+        }
+    
+        upgrade_mod_savepoint(true, 2021021502, 'examregistrar');
+    }      
+
+    // ensure there is only a copy of configdata
+    if ($oldversion < 2021021503) {
+
+        $config = $DB->get_records('examregistrar_plugin_config', null, 'id ASC');
+        
+        if(!empty($config)) {
+            foreach($config as $cid => $config) {
+                $params = ['examregid' => $config->examregid, 
+                            'plugin' => $config->plugin, 
+                            'subtype' => $config->subtype, 
+                            'name' => $config->name,
+                            'id' => $cid];
+                $select = "examregid = :examregid AND plugin = :plugin AND subtype = :subtype AND name = :name
+                            AND id > :id";
+                $DB->delete_records_select('examregistrar_plugin_config', $select, $params); 
+            }    
+        }
+    
+        upgrade_mod_savepoint(true, 2021021503, 'examregistrar');
+    }        
+    
+    
+    // major change to several exam delivery methods
+    if ($oldversion < 2021032902) {    
+        
+        // Define table examdelivery to be created.
+        $table = new xmldb_table('examregistrar_examdelivery');
+        // Adding fields to table examregistrar_examdelivery.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('examid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('helpermod', XMLDB_TYPE_CHAR, '20', null, null, null, null);
+        $table->add_field('helpercmid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('timeopen', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('timeclose', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('timelimit', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('status', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('parameters', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('bookedsite', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('component', XMLDB_TYPE_CHAR, '100', null, null, null, null);
+        $table->add_field('modifierid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0);
+       
+        // Adding keys to table examregistrar_examdelivery.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('examid', XMLDB_KEY_FOREIGN, array('examid'), 'examregistrar_exams', array('id'));
+        $table->add_key('helpercmid', XMLDB_KEY_FOREIGN, array('helpercmid'), 'course_modules', array('id'));
+        $table->add_key('bookedsite', XMLDB_KEY_FOREIGN, array('bookedsite'), 'examregistrar_locations', array('id'));
+
+        // Adding indexes to table examregistrar_examdelivery.
+        $table->add_index('status', XMLDB_INDEX_NOTUNIQUE, array('status'));
+        $table->add_index('exam-helper-booked', XMLDB_INDEX_NOTUNIQUE, array('examid, helpercmid, bookedsite'));
+
+        // Conditionally launch create table for exam student response files.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        $field = new xmldb_field('bookedsite', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'parameters');
+        // Conditionally launch add field bookedsite.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+    
+        // Define field deliveryid to be added to responses table.
+        $table = new xmldb_table('examregistrar_responses');
+        $field = new xmldb_field('deliveryid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'examid');
+        // Conditionally launch add field deliveryid.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+    
+        // field deliveryid to be added to session_seats table.
+        $table = new xmldb_table('examregistrar_session_seats');
+        // Conditionally launch add field deliveryid.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Populate new table from exams table 
+        $delivery = new \stdClass();
+        $delivery->timemodified = time();
+        $delivery->modifierid = $USER->id;
+        $delivery->component = 'upgrade';
+        $bookedsites = [];
+    
+        $sql = "SELECT e.id AS examid, e.examregid, e.assignplugincm, e.quizplugincm, e.component, e.modifierid, e.timemodified,
+                        ef.id AS examfileid, ef.taken
+                  FROM {examregistrar_exams} e  
+             LEFT JOIN {examregistrar_examfiles} ef ON ef.examid = e.id AND ef.status = :status
+                 WHERE  (e.assignplugincm <> 0 OR e.quizplugincm <> 0) AND e.visible = 1";
+        if($exams = $DB->get_records_sql($sql, array('status' => EXAM_STATUS_APPROVED))) {
+            foreach($exams as $exam) {
+                if(!isset($exam->examfileid)) {
+                    $exam->examfileid = 0;
+                }
+                $params = ['examregid' => $exam->examregid, 'plugin' => '', 
+                        'subtype' => 'examregistrar', 'name' => 'deliverysite'];
+                if(!isset($bookedsites[$exam->examregid])) {
+                    if(!$site = $DB->get_field('examregistrar_plugin_config', 'value', $params)) {
+                        $site = 0;
+                    }
+                    $bookedsites[$exam->examregid] = $site;
+                }
+                $delivery->bookedsite = $bookedsites[$exam->examregid];
+                
+                $exam->status = 0;
+                $delivery->examid = $exam->examid;
+                $delivery->helpermod = '';
+                if($exam->assignplugincm > 0) {
+                    $delivery->helpermod = 'assign';
+                    $delivery->helpercmid = $exam->assignplugincm;
+                    $assign = $DB->get_record('assign', array('id' => $DB->get_field('course_modules', 'instance', array('id' => $exam->assignplugincm))));
+                    $delivery->timeopen = $assign->allowsubmissionsfromdate;
+                    $delivery->timeclose = $assign->duedate;
+                    $delivery->timelimit = $assign->duedate - $assign->allowsubmissionsfromdate;
+                }  
+                if($exam->quizplugincm > 0) {
+                    $quiz = $DB->get_record('quiz', array('id' => $DB->get_field('course_modules', 'instance', array('id' => $exam->quizplugincm))));
+                    $delivery->helpermod = 'quiz';
+                    $delivery->helpercmid = $exam->quizplugincm;
+                    $delivery->timeopen = $quiz->timeopen;
+                    $delivery->timeclose = $quiz->timeclose;
+                    $delivery->timelimit = $quiz->timelimit;
+                }
+                if($delivery->helpermod && !$DB->record_exists('examregistrar_examdelivery', 
+                        ['examid' => $delivery->examid, 'helpercmid' =>$delivery->helpercmid, 'bookedsite' =>$delivery->bookedsite])) {
+                    $DB->insert_record('examregistrar_examdelivery', $delivery);
+                }
+            }
+        }
+    
+        // Define field deliveryid to be added to responses table.
+        $table = new xmldb_table('examregistrar_exams');
+        $field = new xmldb_field('assignplugincm', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        // Conditionally launch drop field assignplugincm.
+        if ($dbman->field_exists($table, $field)) {
+            //$dbman->drop_field($table, $field);
+        }    
+        
+        $field = new xmldb_field('quizplugincm', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        // Conditionally launch drop field quizplugincm.
+        if ($dbman->field_exists($table, $field)) {
+            //$dbman->drop_field($table, $field);
+        }    
+
+        upgrade_mod_savepoint(true, 2021032902, 'examregistrar');
+    }        
     
     $a = 0;
     /* 

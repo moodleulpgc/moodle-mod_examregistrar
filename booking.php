@@ -178,10 +178,10 @@ if($formdata = $mform->get_data()) {
                     $errors[$key] = $booking;
                 } else {
                     //$examdate = $DB->get_field('examregistrar_examsessions', 'examdate', array('id'=>$exam->examsession, 'examregid'=>$exam->examregid, 'period'=>$exam->period));    
-                    $examdate = examregistrar_bookin_get_examdate($exam, $canmanageexams);
+                    //$examdate = examregistrar_booking_get_examdate($exam, $canmanageexams);
                     if(($exam->period == $period) &&
                             !examregistrar_check_exam_in_past($now, $lagdays, $exam, $canmanageexams) &&
-                            (examregistrar_check_exam_within_period($now, $periodobj, $exam, $config) OR $canmanageexams)) {
+                            (examregistrar_check_exam_within_period($now, $periodobj, $config->selectdays, $exam) OR $canmanageexams)) {
                             
                         if($record = examregistrar_booking_store_new($booking, $userid, $now)) {
                             $newid = $record->id;

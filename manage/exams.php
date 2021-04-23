@@ -403,8 +403,6 @@ if($elements) {
             $buttons[] = html_writer::link($actionurl, $OUTPUT->pix_icon('t/copy', $stradddelivery, 'moodle', array('class'=>'iconsmall', 'title'=>$stradddelivery)));
             */
             
-            
-            
             $action = implode('&nbsp;&nbsp;', $buttons);
         }
         $data[] = $action;

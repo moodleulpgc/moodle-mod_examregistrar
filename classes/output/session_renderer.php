@@ -395,6 +395,7 @@ class session_renderer extends renderer {
             if(!isset($exam->booked)) {
                 $exam->booked = 0;
             }
+            
             $exam->examregid = $examregprimaryid;
             $exam->annuality = $examregistrar->annuality;        
             $examclass = new \examregistrar_exam($exam);
@@ -424,7 +425,7 @@ class session_renderer extends renderer {
                 }
         
                 $flags = $examclass->get_helper_flags();
-                $cellaction = $this->print_exam_flags($exam->examid, $baseurl, $flags);
+                $cellaction = $this->print_exam_flags($exam->examid, $baseurl, $flags, $examclass->taken);
             }
     
             if($cellaction) {
@@ -578,15 +579,25 @@ class session_renderer extends renderer {
         return $output;       
     }
     
-    public function print_exam_flags($examid, $url, $flags, $taken = true) {
+    public function print_exam_flags($examid, $url, $flags, $taken = false) {
         $output = '';
-        //https://localhost/moodle39ulpgc/mod/examregistrar/manage.php?id=7592&edit=exams&action=syncqz
-        //https://localhost/moodle39ulpgc/mod/examregistrar/view.php?id=7592&tab=session&session=16&venue&esort&rsort&action=examssetquestions&exam=66
+        
+        if(isset($flags['extranobook']) && $flags['extranobook'] ) { 
+            $output .= $this->pix_icon('i/groupn', get_string('extranobook', 'examregistrar'), 'moodle', ['class' => 'icon']);
+        }
+        
         $datesicons = '';
-        //dates 
+        if(isset($flags['datetime']) && $flags['datetime']) {       
+            $title = get_string('unsynchdate', 'examregistrar');
+            $datesicons .= html_writer::tag('i', ' ', array('class' => "fa fa-calendar-times-o responseicon text-{$flags['datetime']}",
+                                                    'title' => $title,
+                                                    'aria-label' => $title,
+                                                    ));            
+        }
+       
         if(isset($flags['timeopen']) && $flags['timeopen']) {
             $title = get_string('unsynchtimeopen', 'examregistrar');
-            $datesicons .= html_writer::tag('i', ' ', array('class' => "fa fa-clock responseicon text-{$flags['timeopen']}",
+            $datesicons .= html_writer::tag('i', ' ', array('class' => "fa fa-clock-o responseicon text-{$flags['timeopen']}",
                                                     'title' => $title,
                                                     'aria-label' => $title,
                                                     ));            

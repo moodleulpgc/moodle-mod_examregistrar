@@ -526,6 +526,9 @@ function examregistrar_get_instance_config($examregid, $fields = false, $prefix 
         }
     }    
    
+   if(empty($config)) {
+    $config = '';
+   }
     return $config;
 }
 
@@ -1428,7 +1431,8 @@ function examregistrar_get_session_exams($sessionid, $bookedsite = 0, $sort = ''
         $specialwhere = ' AND e.callnum < 0 ';
     }
 
-    $sql = "SELECT $deliveryfields e.id, e.id AS examid, e.programme, e.courseid, e.callnum, e.examsession, e.examscope, e.assignplugincm, e.quizplugincm,  
+    $sql = "SELECT $deliveryfields e.id, e.id AS examid, e.programme, e.courseid, e.callnum, e.examsession, e.examscope, 
+                    e.assignplugincm, e.quizplugincm, 
                     c.shortname, c.fullname, c.idnumber $countallocated  $countbookings
             FROM {examregistrar_exams} e
             JOIN {course} c ON e.courseid = c.id
